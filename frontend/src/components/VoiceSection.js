@@ -45,13 +45,19 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
   const [participants, setParticipants] = useState([]);
   const [socketConnected, setSocketConnected] = useState(false);
 
-  // WebRTC Configuration - Enhanced for high quality
+  // WebRTC Configuration - Production-ready with multiple STUN servers
   const rtcConfig = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },  
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
       { urls: 'stun:global.stun.twilio.com:3478' },
+      { urls: 'stun:stun.cloudflare.com:3478' },
     ],
+    iceCandidatePoolSize: 10,
+    bundlePolicy: 'max-bundle',
+    rtcpMuxPolicy: 'require'
   };
 
   // Enhanced audio constraints for high quality
