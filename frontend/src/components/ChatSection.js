@@ -400,7 +400,8 @@ function Message({ message, onShowProfile }) {
           <span
             className="message-author"
             style={{ color: message.aura_color, cursor: 'pointer' }}
-            onClick={() => onShowProfile && onShowProfile(message.user_id)}
+            onClick={handleUserClick}
+            title={`Ver perfil de ${message.username}`}
           >
             {message.username}
           </span>
