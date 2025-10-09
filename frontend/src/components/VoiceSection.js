@@ -429,32 +429,32 @@ function VoiceSection({
             <div className="controls-buttons">
               {activeVoiceChannel.creator_id === user.id && (
                 <ControlButton
-                  icon={activeVoiceChannel.is_ghost_mode ? '👁️' : '👻'}
+                  icon={activeVoiceChannel.is_ghost_mode ? <EyeIcon size={20} /> : <GhostIcon size={20} />}
                   label={activeVoiceChannel.is_ghost_mode ? 'Visible' : 'Ocultar'}
                   onClick={toggleGhostMode}
                   active={activeVoiceChannel.is_ghost_mode}
                 />
               )}
               <ControlButton
-                icon={isMuted ? '🔇' : '🎤'}
+                icon={isMuted ? <MicOffIcon size={20} /> : <MicIcon size={20} />}
                 label={isMuted ? 'Activar' : 'Silenciar'}
                 onClick={toggleMute}
                 active={isMuted}
               />
               <ControlButton
-                icon={isDeafened ? '🔊' : '🔇'}
+                icon={isDeafened ? <VolumeIcon size={20} /> : <VolumeOffIcon size={20} />}
                 label={isDeafened ? 'Escuchar' : 'Ensordecer'}
                 onClick={toggleDeafen}
                 active={isDeafened}
               />
               <ControlButton
-                icon={isScreenSharing ? '🖥️' : '📺'}
+                icon={<ScreenShareIcon size={20} />}
                 label={isScreenSharing ? 'Detener' : 'Compartir'}
                 onClick={toggleScreenShare}
                 active={isScreenSharing}
               />
               <ControlButton
-                icon="❌"
+                icon={<XIcon size={20} />}
                 label="Colgar"
                 onClick={leaveChannel}
                 danger
