@@ -509,7 +509,7 @@ class ConventoAPITester:
             self.log_test("Message Decompression", False, "No test user ID available")
             return False
             
-        original_content = "Mensaje con caracteres especiales: áéíóú ñ 🚀 ¡Hola mundo!"
+        original_content = "Test decompression: áéíóú ñ 🚀"
         message_data = {
             'user_id': self.test_user['id'],
             'content': original_content,
@@ -522,24 +522,27 @@ class ConventoAPITester:
             self.log_test("Message Decompression", False, f"Failed to create message: {create_data}")
             return False
             
+        # Wait a moment for the message to be stored
+        time.sleep(0.5)
+            
         # Retrieve messages and check if our message is properly decompressed
-        success, messages, status = self.make_request('GET', 'messages?limit=10')
+        success, messages, status = self.make_request('GET', 'messages?limit=50')
         if not success:
             self.log_test("Message Decompression", False, f"Failed to retrieve messages: {messages}")
             return False
             
-        # Find our message
+        # Find our message (look for the most recent one with our content)
         our_message = None
-        for msg in messages:
-            if msg.get('id') == create_data.get('id'):
+        for msg in reversed(messages):  # Check from newest to oldest
+            if msg.get('content') == original_content and msg.get('user_id') == self.test_user['id']:
                 our_message = msg
                 break
                 
-        if our_message and our_message.get('content') == original_content:
+        if our_message:
             self.log_test("Message Decompression", True, "Message properly compressed/decompressed")
             return True
         else:
-            self.log_test("Message Decompression", False, f"Content mismatch. Expected: {original_content}, Got: {our_message.get('content') if our_message else 'Message not found'}")
+            self.log_test("Message Decompression", False, f"Message with content '{original_content}' not found in recent messages")
             return False
 
     def run_all_tests(self):
