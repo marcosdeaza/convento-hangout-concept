@@ -188,19 +188,41 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     try {
       console.log('🎤 Joining voice channel:', channel.name);
       
-      // STEP 1: Get microphone permission with simplified constraints first
+      // STEP 1: Get microphone permission with fallback handling
       console.log('🎧 Requesting microphone access...');
       
-      const basicConstraints = {
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          ...(selectedInputDevice && { deviceId: { exact: selectedInputDevice } })
+      let stream;
+      try {
+        // Try with selected device first
+        const basicConstraints = {
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            ...(selectedInputDevice && { deviceId: { exact: selectedInputDevice } })
+          }
+        };
+        
+        stream = await navigator.mediaDevices.getUserMedia(basicConstraints);
+      } catch (firstError) {
+        console.warn('First attempt failed, trying with default device:', firstError.name);
+        
+        // Fallback: try with default device
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            }
+          });
+        } catch (secondError) {
+          console.warn('Second attempt failed, trying basic audio:', secondError.name);
+          
+          // Final fallback: basic audio only
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         }
-      };
-      
-      const stream = await navigator.mediaDevices.getUserMedia(basicConstraints);
+      }
       localStreamRef.current = stream;
       
       const audioTrack = stream.getAudioTracks()[0];
