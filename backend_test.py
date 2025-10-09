@@ -566,6 +566,7 @@ class ConventoAPITester:
         self.test_create_message()
         self.test_create_link_message()
         self.test_message_compression()
+        self.test_message_decompression()
         self.test_get_messages()
         
         # Voice Channel Tests
