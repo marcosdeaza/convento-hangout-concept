@@ -356,26 +356,7 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     }
   };
 
-  const sendSignal = async (toUserId, signalType, data) => {
-    try {
-      console.log(`📤 Sending ${signalType} to ${toUserId}`);
-      
-      await axios.post(`${API}/webrtc/signal`, {
-        from_user: user.id,
-        to_user: toUserId,
-        channel_id: activeVoiceChannel.id,
-        signal_type: signalType,
-        data: data
-      }, { timeout: 8000 });
-      
-      console.log(`✅ Signal ${signalType} sent successfully`);
-    } catch (err) {
-      console.error(`❌ Failed to send ${signalType} signal:`, err);
-      throw err; // Re-throw to handle in calling function
-    }
-  };
-
-  // Removed Socket.IO event handlers - using REST API polling
+  // All WebRTC functions now handled by SimpleWebRTC class
 
   const createPeerConnection = (remoteUserId) => {
     console.log(`🤝 Creating peer connection with ${remoteUserId}`);
