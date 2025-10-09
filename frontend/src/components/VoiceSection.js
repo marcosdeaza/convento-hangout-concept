@@ -262,23 +262,53 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
         localStreamRef.current = null;
       }
       
-      let errorMessage = 'Error al unirse al canal: ';
+      let errorMessage = '';
+      let allowDemoMode = false;
       
       if (err.name === 'NotAllowedError') {
-        errorMessage += 'Permiso de micrófono denegado. Haz clic en "Permitir" cuando el navegador lo solicite.';
+        errorMessage = 'Permiso de micrófono denegado. Haz clic en "Permitir" cuando el navegador lo solicite.';
       } else if (err.name === 'NotFoundError') {
-        errorMessage += 'No se encontró micrófono. Conecta un micrófono e intenta de nuevo.';
+        errorMessage = 'No se encontró micrófono disponible.';
+        allowDemoMode = true;
       } else if (err.name === 'OverconstrainedError') {
-        errorMessage += 'Problema con el dispositivo de audio seleccionado.';
+        errorMessage = 'Problema con el dispositivo de audio seleccionado.';
         // Try with default device
         setSelectedInputDevice('');
       } else if (err.response?.status === 404) {
-        errorMessage += 'Canal no encontrado.';
+        errorMessage = 'Canal no encontrado.';
       } else {
-        errorMessage += err.message || 'Error desconocido.';
+        errorMessage = err.message || 'Error desconocido.';
       }
       
-      alert(errorMessage);
+      // Offer demo mode for testing environments
+      if (allowDemoMode) {
+        const demoMode = confirm(
+          `${errorMessage}\n\n¿Quieres unirte en MODO DEMO (sin audio)?\n\nEsto es útil para probar la interfaz cuando no hay micrófono disponible.`
+        );
+        
+        if (demoMode) {
+          console.log('🎭 Entering DEMO MODE - no audio');
+          // Join without audio for UI testing
+          try {
+            await axios.post(`${API}/voice-channels/${channel.id}/join?user_id=${user.id}`);
+            setActiveVoiceChannel(channel);
+            setIsMuted(true); // Start muted in demo mode
+            onRefresh();
+            
+            // Show demo warning
+            setTimeout(() => {
+              alert('🎭 MODO DEMO ACTIVADO\n\nEstás en el canal sin audio. Perfecto para probar la interfaz.\n\nEn producción con micrófono real, el audio funcionará correctamente.');
+            }, 1000);
+            
+            return; // Exit successfully
+          } catch (demoErr) {
+            console.error('Demo mode failed:', demoErr);
+            alert('Error en modo demo: ' + demoErr.message);
+          }
+        }
+      } else {
+        alert('Error al unirse al canal: ' + errorMessage);
+      }
     }
   };
 
