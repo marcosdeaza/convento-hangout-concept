@@ -520,16 +520,40 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
         audioElement.setAttribute('data-user-id', remoteUserId);
         audioElement.style.display = 'none';
         
-        // CRITICAL: Force play the audio
-        audioElement.play().then(() => {
-          console.log('🔊 Audio playing successfully for:', remoteUserId);
-        }).catch(error => {
-          console.error('❌ Failed to play audio for:', remoteUserId, error);
-          // Try again after user interaction
-          document.addEventListener('click', () => {
-            audioElement.play().catch(console.error);
-          }, { once: true });
-        });
+        // CRITICAL: Handle audio autoplay policy
+        const playAudio = () => {
+          audioElement.play().then(() => {
+            console.log('🔊 Audio playing successfully for:', remoteUserId);
+          }).catch(error => {
+            console.warn('⚠️ Autoplay blocked for:', remoteUserId, 'Waiting for user interaction');
+            
+            // Show user notification for audio permission
+            if (!document.querySelector('.audio-permission-notice')) {
+              const notice = document.createElement('div');
+              notice.className = 'audio-permission-notice';
+              notice.innerHTML = `
+                <div style="position: fixed; top: 20px; right: 20px; background: rgba(139, 92, 246, 0.9); color: white; padding: 15px 20px; border-radius: 10px; z-index: 9999; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                  🔊 Haz clic para activar audio de otros usuarios
+                </div>
+              `;
+              document.body.appendChild(notice);
+              
+              // Remove notice and enable audio on click
+              notice.onclick = () => {
+                audioElement.play().catch(console.error);
+                notice.remove();
+              };
+              
+              // Auto-remove after 10 seconds
+              setTimeout(() => {
+                if (notice.parentNode) notice.remove();
+              }, 10000);
+            }
+          });
+        };
+        
+        // Try to play immediately
+        playAudio();
         
         // Set output device if supported
         if (audioElement.setSinkId && selectedOutputDevice) {
