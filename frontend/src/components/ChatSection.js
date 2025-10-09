@@ -321,7 +321,7 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
   );
 }
 
-function Message({ message }) {
+function Message({ message, onShowProfile }) {
   const renderContent = () => {
     switch (message.message_type) {
       case 'image':
