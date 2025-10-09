@@ -163,7 +163,12 @@ function ChatSection({ user, messages, socket, socketConnected, onRefresh }) {
           <span className="section-icon"><ChatIcon size={28} /></span>
           Chat General
         </h2>
-        <span className="online-count">{messages.length} mensajes</span>
+        <div className="header-info">
+          <span className={`connection-status ${socketConnected ? 'connected' : 'disconnected'}`}>
+            {socketConnected ? '• Conectado' : '• Desconectado'}
+          </span>
+          <span className="online-count">{messages.length} mensajes</span>
+        </div>
       </div>
 
       {/* Messages Container */}
