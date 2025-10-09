@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import { CameraIcon, CheckIcon } from '@/components/Icons';
 import './ProfileSection.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
