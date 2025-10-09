@@ -199,7 +199,7 @@ function ProfileSection({ user, onUpdate }) {
             whileTap={{ scale: 0.9 }}
             data-testid="edit-banner-button"
           >
-            📷
+            <CameraIcon size={18} />
           </motion.button>
           <input
             id="banner-input"
@@ -229,7 +229,7 @@ function ProfileSection({ user, onUpdate }) {
               whileTap={{ scale: 0.9 }}
               data-testid="edit-avatar-button"
             >
-              📷
+              <CameraIcon size={18} />
             </motion.button>
             <input
               id="avatar-input"
