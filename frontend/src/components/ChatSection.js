@@ -384,7 +384,8 @@ function Message({ message, onShowProfile }) {
         <div className="message-header">
           <span
             className="message-author"
-            style={{ color: message.aura_color }}
+            style={{ color: message.aura_color, cursor: 'pointer' }}
+            onClick={() => onShowProfile && onShowProfile(message.user_id)}
           >
             {message.username}
           </span>
