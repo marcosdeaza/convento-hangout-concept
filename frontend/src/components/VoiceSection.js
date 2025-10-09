@@ -474,22 +474,39 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
   };
 
   const createOfferForUser = async (remoteUserId) => {
+    console.log('🤝 Creating offer for user:', remoteUserId);
+    
     try {
+      // Don't create duplicate connections
+      if (peerConnectionsRef.current[remoteUserId]) {
+        console.log('⚠️ Connection already exists for:', remoteUserId);
+        return;
+      }
+      
       const pc = createPeerConnection(remoteUserId);
       
       const offer = await pc.createOffer({
         offerToReceiveAudio: true,
-        offerToReceiveVideo: true
+        offerToReceiveVideo: true,
+        iceRestart: false
       });
       
       await pc.setLocalDescription(offer);
+      console.log('✅ Local description set for offer to:', remoteUserId);
       
       console.log('📤 Sending offer to:', remoteUserId);
       await sendSignal(remoteUserId, 'offer', {
-        offer: pc.localDescription
+        offer: offer
       });
+      
+      console.log('✅ Offer sent successfully to:', remoteUserId);
     } catch (err) {
-      console.error('Error creating offer:', err);
+      console.error('❌ Error creating offer for', remoteUserId, ':', err);
+      // Clean up failed connection
+      if (peerConnectionsRef.current[remoteUserId]) {
+        peerConnectionsRef.current[remoteUserId].close();
+        delete peerConnectionsRef.current[remoteUserId];
+      }
     }
   };
 
