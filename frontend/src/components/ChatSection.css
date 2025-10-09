@@ -36,29 +36,24 @@
   gap: 12px;
 }
 
-.connection-status {
-  font-size: 13px;
-  font-weight: 600;
+.online-users {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-.connection-status.connected {
+.users-icon {
   color: #10B981;
 }
 
-.connection-status.disconnected {
-  color: #EF4444;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.online-count {
-  font-size: 14px;
-  color: rgba(248, 250, 252, 0.6);
-  padding: 6px 12px;
-  border-radius: 20px;
-  background: rgba(139, 92, 246, 0.1);
+.user-count {
+  font-size: 15px;
+  font-weight: 700;
+  color: #10B981;
 }
 
 /* ============= MESSAGES CONTAINER ============= */
