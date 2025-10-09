@@ -184,13 +184,24 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     try {
       console.log('🎤 Joining channel:', channel.name);
       
-      // Get high-quality microphone stream
-      const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+      // Enhanced audio constraints with device selection
+      const constraints = {
+        audio: {
+          ...audioConstraints.audio,
+          deviceId: selectedInputDevice ? { exact: selectedInputDevice } : undefined
+        }
+      };
+      
+      // Get high-quality microphone stream with selected device
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       localStreamRef.current = stream;
       
+      const audioTrack = stream.getAudioTracks()[0];
       console.log('🎧 Audio stream acquired:', {
-        sampleRate: stream.getAudioTracks()[0].getSettings().sampleRate,
-        channelCount: stream.getAudioTracks()[0].getSettings().channelCount
+        deviceId: audioTrack.getSettings().deviceId,
+        sampleRate: audioTrack.getSettings().sampleRate,
+        channelCount: audioTrack.getSettings().channelCount,
+        label: audioTrack.label
       });
       
       // Join on server
@@ -202,19 +213,23 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
       // Start connecting to existing participants
       setTimeout(() => {
         initializePeerConnections();
-      }, 1000);
+      }, 2000); // Increased timeout for better connection establishment
       
       console.log('✅ Joined channel successfully');
       
     } catch (err) {
       console.error('❌ Error joining channel:', err);
+      let errorMessage = 'Error al unirse al canal';
+      
       if (err.name === 'NotAllowedError') {
-        alert('Permiso de micrófono denegado. Por favor permite el acceso y recarga la página.');
+        errorMessage = 'Permiso de micrófono denegado. Por favor permite el acceso y recarga la página.';
       } else if (err.name === 'NotFoundError') {
-        alert('No se encontró micrófono. Verifica que tienes uno conectado.');
-      } else {
-        alert('Error al unirse al canal. Verifica los permisos del micrófono.');
+        errorMessage = 'No se encontró micrófono. Verifica que tienes uno conectado.';
+      } else if (err.name === 'OverconstrainedError') {
+        errorMessage = 'El dispositivo de audio seleccionado no es compatible. Cambia el dispositivo e intenta de nuevo.';
       }
+      
+      alert(errorMessage);
     }
   };
 
