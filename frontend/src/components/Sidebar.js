@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { ChatIcon, HeadphonesIcon, SparklesIcon, LogoutIcon } from '@/components/Icons';
 import './Sidebar.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
