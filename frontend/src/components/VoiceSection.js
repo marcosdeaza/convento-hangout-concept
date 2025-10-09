@@ -370,7 +370,8 @@ function VoiceSection({
           whileTap={{ scale: 0.95 }}
           data-testid="create-channel-button"
         >
-          + Crear Canal
+          <PlusIcon size={18} />
+          Crear Canal
         </motion.button>
       </div>
 
