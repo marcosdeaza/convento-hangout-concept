@@ -319,34 +319,45 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
         localStreamRef.current = null;
       }
 
+      // Stop screen sharing
       if (screenStream) {
         screenStream.getTracks().forEach(track => track.stop());
         setScreenStream(null);
         setIsScreenSharing(false);
       }
 
-      // Close all peer connections
+      // Close all peer connections and clean up audio elements
       Object.keys(peerConnectionsRef.current).forEach(userId => {
         const pc = peerConnectionsRef.current[userId];
         pc.close();
+        
+        // Clean up audio elements
+        cleanupUserConnection(userId);
+        
         console.log('🔌 Closed connection with:', userId);
       });
+      
+      // Clear all references
       peerConnectionsRef.current = {};
       remoteStreamsRef.current = {};
 
       // Leave on server
       await axios.post(`${API}/voice-channels/${activeVoiceChannel.id}/leave?user_id=${user.id}`);
       
+      // Reset UI state
       setActiveVoiceChannel(null);
       setIsMuted(false);
       setIsDeafened(false);
       setRemoteScreens({});
       setParticipants([]);
+      setShowDeviceSettings(false);
+      
+      // Refresh channels list
       onRefresh();
       
-      console.log('✅ Left channel successfully');
+      console.log('✅ Successfully left channel');
     } catch (err) {
-      console.error('Error leaving channel:', err);
+      console.error('❌ Error leaving channel:', err);
     }
   };
 
