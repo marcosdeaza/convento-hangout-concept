@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, WebSocket, WebSocketDisconnect, Body
 from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -7,7 +7,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timezone
 import secrets
@@ -15,7 +15,6 @@ import string
 import json
 import zlib
 import base64
-import socketio
 import aiofiles
 from PIL import Image
 import io
@@ -32,20 +31,13 @@ db = client[os.environ['DB_NAME']]
 UPLOADS_DIR = ROOT_DIR / 'uploads'
 UPLOADS_DIR.mkdir(exist_ok=True)
 
-# Socket.IO setup
-sio = socketio.AsyncServer(
-    async_mode='asgi',
-    cors_allowed_origins='*',
-    logger=True,
-    engineio_logger=True
-)
-
 # Create the main app
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
-# WebRTC signaling storage
-webrtc_rooms: Dict[str, Dict] = {}
+# WebRTC signaling storage (in-memory for MVP)
+webrtc_signals: Dict[str, List[Dict]] = {}
+active_connections: Dict[str, Dict[str, Any]] = {}
 
 # Configure logging
 logging.basicConfig(
@@ -83,8 +75,8 @@ class Message(BaseModel):
     username: str
     avatar_url: Optional[str]
     aura_color: str
-    content: str  # Compressed base64
-    message_type: str = "text"  # text, image, audio, file, link
+    content: str
+    message_type: str = "text"
     file_url: Optional[str] = None
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -110,28 +102,31 @@ class VoiceChannelCreate(BaseModel):
     creator_id: str
     is_ghost_mode: bool = False
 
+class SignalData(BaseModel):
+    from_user: str
+    to_user: str
+    channel_id: str
+    signal_type: str  # offer, answer, ice-candidate
+    data: Dict[str, Any]
+
 # ============= HELPER FUNCTIONS =============
 
 def generate_access_code() -> str:
-    """Generate a unique 16-character access code"""
     characters = string.ascii_letters + string.digits
     return ''.join(secrets.choice(characters) for _ in range(16))
 
 def compress_message(text: str) -> str:
-    """Compress text message to save storage"""
     compressed = zlib.compress(text.encode('utf-8'))
     return base64.b64encode(compressed).decode('utf-8')
 
 def decompress_message(compressed_text: str) -> str:
-    """Decompress message"""
     try:
         compressed = base64.b64decode(compressed_text.encode('utf-8'))
         return zlib.decompress(compressed).decode('utf-8')
     except:
-        return compressed_text  # Return as-is if decompression fails
+        return compressed_text
 
 async def prepare_for_mongo(data: dict) -> dict:
-    """Prepare data for MongoDB storage"""
     if isinstance(data.get('created_at'), datetime):
         data['created_at'] = data['created_at'].isoformat()
     if isinstance(data.get('last_seen'), datetime):
@@ -141,7 +136,6 @@ async def prepare_for_mongo(data: dict) -> dict:
     return data
 
 async def parse_from_mongo(item: dict) -> dict:
-    """Parse data from MongoDB"""
     if isinstance(item.get('created_at'), str):
         item['created_at'] = datetime.fromisoformat(item['created_at'])
     if isinstance(item.get('last_seen'), str):
@@ -154,10 +148,8 @@ async def parse_from_mongo(item: dict) -> dict:
 
 @api_router.post("/auth/register")
 async def register_user():
-    """Generate a new access code and create user"""
     access_code = generate_access_code()
     
-    # Check if code already exists (very unlikely but possible)
     existing = await db.users.find_one({"access_code": access_code})
     while existing:
         access_code = generate_access_code()
@@ -171,7 +163,6 @@ async def register_user():
 
 @api_router.post("/auth/login")
 async def login_user(user_create: UserCreate):
-    """Login with access code"""
     user_data = await db.users.find_one({"access_code": user_create.access_code}, {"_id": 0})
     
     if not user_data:
@@ -179,7 +170,6 @@ async def login_user(user_create: UserCreate):
     
     user_data = await parse_from_mongo(user_data)
     
-    # Update last seen
     await db.users.update_one(
         {"access_code": user_create.access_code},
         {"$set": {"last_seen": datetime.now(timezone.utc).isoformat()}}
@@ -189,7 +179,6 @@ async def login_user(user_create: UserCreate):
 
 @api_router.get("/users/{user_id}")
 async def get_user(user_id: str):
-    """Get user by ID"""
     user_data = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not user_data:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -197,7 +186,6 @@ async def get_user(user_id: str):
 
 @api_router.put("/users/{user_id}")
 async def update_user(user_id: str, user_update: UserUpdate):
-    """Update user profile"""
     update_data = {k: v for k, v in user_update.model_dump().items() if v is not None}
     
     if not update_data:
@@ -215,42 +203,34 @@ async def update_user(user_id: str, user_update: UserUpdate):
 
 @api_router.post("/upload/{user_id}/{upload_type}")
 async def upload_file(user_id: str, upload_type: str, file: UploadFile = File(...)):
-    """Upload avatar, banner, or other files"""
     try:
-        # Generate unique filename
         ext = file.filename.split('.')[-1] if '.' in file.filename else 'png'
         filename = f"{user_id}_{upload_type}_{uuid.uuid4()}.{ext}"
         file_path = UPLOADS_DIR / filename
         
-        # Read and process file
         contents = await file.read()
         
-        # If it's an image (not GIF or WEBP), compress it
+        # Don't compress GIFs or WEBP
         if upload_type in ['avatar', 'banner'] and ext.lower() not in ['gif', 'webp']:
             try:
                 img = Image.open(io.BytesIO(contents))
-                # Only process static images
                 if not getattr(img, 'is_animated', False):
-                    # Resize based on type
                     if upload_type == 'avatar':
                         img.thumbnail((400, 400), Image.Resampling.LANCZOS)
                     elif upload_type == 'banner':
                         img.thumbnail((1200, 400), Image.Resampling.LANCZOS)
                     
-                    # Save compressed
                     output = io.BytesIO()
                     img.save(output, format='PNG', optimize=True)
                     contents = output.getvalue()
             except Exception as e:
                 logger.error(f"Image processing error: {e}")
         
-        # Save file
         async with aiofiles.open(file_path, 'wb') as f:
             await f.write(contents)
         
         file_url = f"/api/files/{filename}"
         
-        # Update user profile if avatar or banner
         if upload_type == 'avatar':
             await db.users.update_one({"id": user_id}, {"$set": {"avatar_url": file_url}})
         elif upload_type == 'banner':
@@ -264,7 +244,6 @@ async def upload_file(user_id: str, upload_type: str, file: UploadFile = File(..
 
 @api_router.get("/files/{filename}")
 async def get_file(filename: str):
-    """Serve uploaded files"""
     file_path = UPLOADS_DIR / filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Archivo no encontrado")
@@ -272,13 +251,10 @@ async def get_file(filename: str):
 
 @api_router.post("/messages", response_model=Message)
 async def create_message(message: MessageCreate):
-    """Create a new message (with compression)"""
-    # Get user info
     user_data = await db.users.find_one({"id": message.user_id}, {"_id": 0})
     if not user_data:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
-    # Compress message content
     compressed_content = compress_message(message.content)
     
     msg = Message(
@@ -294,19 +270,12 @@ async def create_message(message: MessageCreate):
     msg_dict = await prepare_for_mongo(msg.model_dump())
     await db.messages.insert_one(msg_dict)
     
-    # Emit via Socket.IO
-    decompressed_msg = msg.model_dump()
-    decompressed_msg['content'] = decompress_message(compressed_content)
-    await sio.emit('new_message', decompressed_msg)
-    
     return msg
 
 @api_router.get("/messages", response_model=List[Message])
 async def get_messages(limit: int = 100):
-    """Get recent messages"""
     messages = await db.messages.find({}, {"_id": 0}).sort("timestamp", 1).to_list(limit)
     
-    # Decompress and parse messages
     for msg in messages:
         msg = await parse_from_mongo(msg)
         msg['content'] = decompress_message(msg['content'])
@@ -315,51 +284,41 @@ async def get_messages(limit: int = 100):
 
 @api_router.post("/voice-channels", response_model=VoiceChannel)
 async def create_voice_channel(channel: VoiceChannelCreate):
-    """Create a new voice channel"""
     vc = VoiceChannel(**channel.model_dump())
     vc.participants = [channel.creator_id]
     
     vc_dict = await prepare_for_mongo(vc.model_dump())
     await db.voice_channels.insert_one(vc_dict)
     
-    # Initialize WebRTC room
-    webrtc_rooms[vc.id] = {"participants": {}, "offers": {}}
-    
-    # Emit to all clients
-    await sio.emit('voice_channel_created', vc.model_dump())
+    # Initialize signaling queue
+    webrtc_signals[vc.id] = []
+    active_connections[vc.id] = {}
     
     return vc
 
 @api_router.get("/voice-channels", response_model=List[VoiceChannel])
 async def get_voice_channels():
-    """Get all active voice channels (excluding ghost mode)"""
     channels = await db.voice_channels.find({}, {"_id": 0}).to_list(100)
-    
     for ch in channels:
         ch = await parse_from_mongo(ch)
-    
     return channels
 
 @api_router.delete("/voice-channels/{channel_id}")
 async def delete_voice_channel(channel_id: str):
-    """Delete a voice channel"""
     result = await db.voice_channels.delete_one({"id": channel_id})
     
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Canal no encontrado")
     
-    # Clean up WebRTC room
-    if channel_id in webrtc_rooms:
-        del webrtc_rooms[channel_id]
-    
-    # Emit deletion
-    await sio.emit('voice_channel_deleted', {"channel_id": channel_id})
+    if channel_id in webrtc_signals:
+        del webrtc_signals[channel_id]
+    if channel_id in active_connections:
+        del active_connections[channel_id]
     
     return {"message": "Canal eliminado"}
 
 @api_router.post("/voice-channels/{channel_id}/join")
 async def join_voice_channel(channel_id: str, user_id: str):
-    """Join a voice channel"""
     result = await db.voice_channels.update_one(
         {"id": channel_id},
         {"$addToSet": {"participants": user_id}}
@@ -368,15 +327,16 @@ async def join_voice_channel(channel_id: str, user_id: str):
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Canal no encontrado")
     
-    # Emit update
-    channel = await db.voice_channels.find_one({"id": channel_id}, {"_id": 0})
-    await sio.emit('voice_channel_updated', channel)
+    # Initialize user's connection
+    if channel_id not in active_connections:
+        active_connections[channel_id] = {}
+    active_connections[channel_id][user_id] = {"joined_at": datetime.now(timezone.utc).isoformat()}
     
-    return {"message": "Unido al canal"}
+    channel = await db.voice_channels.find_one({"id": channel_id}, {"_id": 0})
+    return channel
 
 @api_router.post("/voice-channels/{channel_id}/leave")
 async def leave_voice_channel(channel_id: str, user_id: str):
-    """Leave a voice channel"""
     result = await db.voice_channels.update_one(
         {"id": channel_id},
         {"$pull": {"participants": user_id}}
@@ -385,18 +345,20 @@ async def leave_voice_channel(channel_id: str, user_id: str):
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Canal no encontrado")
     
+    # Remove user's connection
+    if channel_id in active_connections and user_id in active_connections[channel_id]:
+        del active_connections[channel_id][user_id]
+    
     # Check if channel is empty
     channel = await db.voice_channels.find_one({"id": channel_id})
     if channel and len(channel.get('participants', [])) == 0:
         await delete_voice_channel(channel_id)
-    else:
-        await sio.emit('voice_channel_updated', channel)
+        return {"message": "Canal eliminado (vacío)"}
     
     return {"message": "Saliste del canal"}
 
 @api_router.put("/voice-channels/{channel_id}/ghost-mode")
 async def toggle_ghost_mode(channel_id: str, is_ghost: bool):
-    """Toggle ghost mode for a voice channel"""
     result = await db.voice_channels.update_one(
         {"id": channel_id},
         {"$set": {"is_ghost_mode": is_ghost}}
@@ -406,77 +368,60 @@ async def toggle_ghost_mode(channel_id: str, is_ghost: bool):
         raise HTTPException(status_code=404, detail="Canal no encontrado")
     
     channel = await db.voice_channels.find_one({"id": channel_id}, {"_id": 0})
-    await sio.emit('voice_channel_updated', channel)
+    return channel
+
+# ============= WEBRTC SIGNALING ENDPOINTS =============
+
+@api_router.post("/webrtc/signal")
+async def send_signal(signal: SignalData):
+    """Send WebRTC signal to another user"""
+    channel_id = signal.channel_id
     
-    return {"message": "Modo fantasma actualizado"}
-
-# ============= SOCKET.IO EVENTS =============
-
-@sio.event
-async def connect(sid, environ):
-    logger.info(f"Client connected: {sid}")
-
-@sio.event
-async def disconnect(sid):
-    logger.info(f"Client disconnected: {sid}")
-
-@sio.event
-async def join_room(sid, data):
-    room = data.get('room')
-    await sio.enter_room(sid, room)
-    logger.info(f"Client {sid} joined room {room}")
-
-@sio.event
-async def leave_room(sid, data):
-    room = data.get('room')
-    await sio.leave_room(sid, room)
-    logger.info(f"Client {sid} left room {room}")
-
-# WebRTC Signaling
-@sio.event
-async def webrtc_offer(sid, data):
-    """Handle WebRTC offer"""
-    channel_id = data.get('channel_id')
-    offer = data.get('offer')
-    from_user = data.get('from_user')
-    to_user = data.get('to_user')
+    if channel_id not in webrtc_signals:
+        webrtc_signals[channel_id] = []
     
-    # Forward offer to specific user
-    await sio.emit('webrtc_offer', {
-        'from_user': from_user,
-        'offer': offer,
-        'channel_id': channel_id
-    }, room=to_user)
-
-@sio.event
-async def webrtc_answer(sid, data):
-    """Handle WebRTC answer"""
-    channel_id = data.get('channel_id')
-    answer = data.get('answer')
-    from_user = data.get('from_user')
-    to_user = data.get('to_user')
+    webrtc_signals[channel_id].append(signal.model_dump())
     
-    # Forward answer to specific user
-    await sio.emit('webrtc_answer', {
-        'from_user': from_user,
-        'answer': answer,
-        'channel_id': channel_id
-    }, room=to_user)
-
-@sio.event
-async def webrtc_ice_candidate(sid, data):
-    """Handle ICE candidate"""
-    channel_id = data.get('channel_id')
-    candidate = data.get('candidate')
-    from_user = data.get('from_user')
-    to_user = data.get('to_user')
+    # Keep only last 100 signals per channel
+    if len(webrtc_signals[channel_id]) > 100:
+        webrtc_signals[channel_id] = webrtc_signals[channel_id][-100:]
     
-    # Forward ICE candidate
-    await sio.emit('webrtc_ice_candidate', {
-        'from_user': from_user,
-        'candidate': candidate,
-        'channel_id': channel_id
-    }, room=to_user)
+    return {"message": "Signal sent"}
+
+@api_router.get("/webrtc/signals/{channel_id}/{user_id}")
+async def get_signals(channel_id: str, user_id: str):
+    """Get WebRTC signals for a user"""
+    if channel_id not in webrtc_signals:
+        return []
+    
+    # Get signals meant for this user
+    user_signals = [
+        signal for signal in webrtc_signals[channel_id]
+        if signal['to_user'] == user_id
+    ]
+    
+    # Remove retrieved signals
+    webrtc_signals[channel_id] = [
+        signal for signal in webrtc_signals[channel_id]
+        if signal['to_user'] != user_id
+    ]
+    
+    return user_signals
+
+@api_router.get("/voice-channels/{channel_id}/participants")
+async def get_channel_participants(channel_id: str):
+    """Get detailed participants info"""
+    channel = await db.voice_channels.find_one({"id": channel_id}, {"_id": 0})
+    if not channel:
+        raise HTTPException(status_code=404, detail="Canal no encontrado")
+    
+    participants = []
+    for user_id in channel.get('participants', []):
+        user_data = await db.users.find_one({"id": user_id}, {"_id": 0, "username": 1, "avatar_url": 1, "aura_color": 1, "id": 1})
+        if user_data:
+            participants.append(user_data)
+    
+    return participants
 
 # ============= APP SETUP =============
 
@@ -490,12 +435,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount Socket.IO
-socket_app = socketio.ASGIApp(sio, app)
-
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
-
-# Export socket_app as the main ASGI application
-app = socket_app
