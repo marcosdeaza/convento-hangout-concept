@@ -72,53 +72,58 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
   const [selectedOutputDevice, setSelectedOutputDevice] = useState('');
   const [showDeviceSettings, setShowDeviceSettings] = useState(false);
 
-  // REST API Signaling Polling - FIXED VERSION
+  // WebSocket Signaling - REAL-TIME WORKING VERSION
   useEffect(() => {
     if (activeVoiceChannel && user) {
-      console.log('🔄 Starting WebRTC signaling polling for channel:', activeVoiceChannel.id);
+      console.log('🔌 Starting WebSocket signaling for channel:', activeVoiceChannel.id);
       
-      // Start polling for signals every 500ms for better responsiveness
-      signalingPollingRef.current = setInterval(async () => {
-        try {
-          const response = await axios.get(`${API}/webrtc/signals/${activeVoiceChannel.id}/${user.id}`);
-          const signals = response.data;
-          
-          if (signals && signals.length > 0) {
-            console.log(`📨 Received ${signals.length} signals for processing`);
-            
-            for (const signal of signals) {
-              console.log(`Processing signal: ${signal.signal_type} from ${signal.from_user}`);
-              
-              switch (signal.signal_type) {
-                case 'offer':
-                  await handleReceiveOffer(signal);
-                  break;
-                case 'answer':
-                  await handleReceiveAnswer(signal);
-                  break;
-                case 'ice-candidate':
-                  await handleReceiveIceCandidate(signal);
-                  break;
-                default:
-                  console.warn('Unknown signal type:', signal.signal_type);
-              }
-            }
-          }
-        } catch (err) {
-          console.error('Error polling WebRTC signals:', err);
-        }
-      }, 500); // Faster polling for better real-time experience
+      // Create Socket.IO connection with direct path
+      const socket = io(BACKEND_URL, {
+        path: '/socket.io',
+        transports: ['websocket', 'polling'],
+        upgrade: true,
+        rememberUpgrade: true
+      });
+      
+      socketRef.current = socket;
 
-      // Load participants and refresh periodically
+      socket.on('connect', () => {
+        console.log('✅ WebSocket connected for WebRTC signaling');
+        setSocketConnected(true);
+        
+        // Join the voice channel room
+        socket.emit('join_voice_channel', {
+          channel_id: activeVoiceChannel.id,
+          user_id: user.id
+        });
+      });
+
+      socket.on('disconnect', () => {
+        console.log('❌ WebSocket disconnected');
+        setSocketConnected(false);
+      });
+
+      // Handle WebRTC signaling events
+      socket.on('webrtc_offer', handleReceiveOffer);
+      socket.on('webrtc_answer', handleReceiveAnswer);
+      socket.on('webrtc_ice_candidate', handleReceiveIceCandidate);
+      socket.on('user_joined_voice', handleUserJoined);
+      socket.on('user_left_voice', handleUserLeft);
+
+      // Load participants
       loadParticipants();
-      const participantsInterval = setInterval(loadParticipants, 2000);
+      const participantsInterval = setInterval(loadParticipants, 3000);
 
       return () => {
-        if (signalingPollingRef.current) {
-          console.log('🛑 Stopping WebRTC signaling polling');
-          clearInterval(signalingPollingRef.current);
+        if (socket) {
+          socket.emit('leave_voice_channel', {
+            channel_id: activeVoiceChannel.id,
+            user_id: user.id
+          });
+          socket.disconnect();
         }
         clearInterval(participantsInterval);
+        setSocketConnected(false);
       };
     }
   }, [activeVoiceChannel, user]);
