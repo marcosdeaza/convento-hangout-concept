@@ -39,41 +39,85 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
   const localStreamRef = useRef(null);
   const peerConnectionsRef = useRef({});
   const remoteStreamsRef = useRef({});
-  const socketRef = useRef(null);
+  const signalingPollingRef = useRef(null);
+  const [participants, setParticipants] = useState([]);
 
-  // WebRTC Configuration
+  // WebRTC Configuration - Enhanced for high quality
   const rtcConfig = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:global.stun.twilio.com:3478' },
     ],
   };
 
-  // Initialize Socket.IO for signaling when in a channel
+  // High-quality audio constraints (48kHz stereo)
+  const audioConstraints = {
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      sampleRate: 48000,
+      channelCount: 2,
+      sampleSize: 16,
+    },
+  };
+
+  // REST API Signaling Polling - Replace Socket.IO
   useEffect(() => {
-    if (activeVoiceChannel) {
-      const socket = io(`${BACKEND_URL}/api`, {
-        path: '/socket.io',
-        transports: ['polling', 'websocket'],
-      });
+    if (activeVoiceChannel && user) {
+      console.log('🔄 Starting WebRTC signaling polling for channel:', activeVoiceChannel.id);
+      
+      // Start polling for signals every 1 second
+      signalingPollingRef.current = setInterval(async () => {
+        try {
+          const response = await axios.get(`${API}/webrtc/signals/${activeVoiceChannel.id}/${user.id}`);
+          const signals = response.data;
+          
+          if (signals && signals.length > 0) {
+            console.log(`📨 Received ${signals.length} signals`);
+            
+            for (const signal of signals) {
+              switch (signal.signal_type) {
+                case 'offer':
+                  await handleReceiveOffer(signal);
+                  break;
+                case 'answer':
+                  await handleReceiveAnswer(signal);
+                  break;
+                case 'ice-candidate':
+                  await handleReceiveIceCandidate(signal);
+                  break;
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error polling WebRTC signals:', err);
+        }
+      }, 1000);
 
-      socket.on('connect', () => {
-        console.log('🔌 Signaling socket connected');
-        socket.emit('join_room', { room: activeVoiceChannel.id });
-      });
-
-      socket.on('webrtc_offer', handleReceiveOffer);
-      socket.on('webrtc_answer', handleReceiveAnswer);
-      socket.on('webrtc_ice_candidate', handleReceiveIceCandidate);
-
-      socketRef.current = socket;
+      // Load participants
+      loadParticipants();
 
       return () => {
-        socket.emit('leave_room', { room: activeVoiceChannel.id });
-        socket.disconnect();
+        if (signalingPollingRef.current) {
+          console.log('🛑 Stopping WebRTC signaling polling');
+          clearInterval(signalingPollingRef.current);
+        }
       };
     }
-  }, [activeVoiceChannel]);
+  }, [activeVoiceChannel, user]);
+
+  const loadParticipants = async () => {
+    if (!activeVoiceChannel) return;
+    
+    try {
+      const response = await axios.get(`${API}/voice-channels/${activeVoiceChannel.id}/participants`);
+      setParticipants(response.data);
+    } catch (err) {
+      console.error('Error loading participants:', err);
+    }
+  };
 
   const createChannel = async () => {
     if (!channelName.trim() || creating) return;
