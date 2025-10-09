@@ -83,6 +83,23 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
     setShowAudioRecorder(false);
   };
 
+  const showUserProfile = async (userId) => {
+    try {
+      console.log('📋 Loading user profile:', userId);
+      const response = await axios.get(`${API}/users/${userId}`);
+      setSelectedUserProfile(response.data);
+      setShowProfileModal(true);
+    } catch (err) {
+      console.error('Error loading user profile:', err);
+      alert('Error al cargar el perfil del usuario');
+    }
+  };
+
+  const closeProfileModal = () => {
+    setShowProfileModal(false);
+    setSelectedUserProfile(null);
+  };
+
   const uploadAudio = async (audioBlob) => {
     setUploading(true);
     try {
