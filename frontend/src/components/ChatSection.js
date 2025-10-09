@@ -225,7 +225,7 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
         <div className="messages-list">
           <AnimatePresence>
             {messages.map((message, index) => (
-              <Message key={message.id || index} message={message} />
+              <Message key={message.id || index} message={message} onShowProfile={showUserProfile} />
             ))}
           </AnimatePresence>
           <div ref={messagesEndRef} />
