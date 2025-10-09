@@ -321,6 +321,144 @@ class ConventoAPITester:
             self.log_test("Message Compression", False, f"Status: {status}, Data: {data}")
             return False
 
+    def test_webrtc_send_signal(self):
+        """Test sending WebRTC signal"""
+        if not self.test_user or not self.test_user_2 or not self.test_voice_channel:
+            self.log_test("WebRTC Send Signal", False, "Missing test users or channel")
+            return False
+            
+        signal_data = {
+            'from_user': self.test_user['id'],
+            'to_user': self.test_user_2['user']['id'],
+            'channel_id': self.test_voice_channel['id'],
+            'signal_type': 'offer',
+            'data': {
+                'sdp': 'v=0\r\no=- 123456789 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n',
+                'type': 'offer'
+            }
+        }
+        
+        success, data, status = self.make_request('POST', 'webrtc/signal', signal_data)
+        
+        if success:
+            self.log_test("WebRTC Send Signal", True, "Signal sent successfully")
+            return True
+        else:
+            self.log_test("WebRTC Send Signal", False, f"Status: {status}, Data: {data}")
+            return False
+
+    def test_webrtc_get_signals(self):
+        """Test retrieving WebRTC signals"""
+        if not self.test_user_2 or not self.test_voice_channel:
+            self.log_test("WebRTC Get Signals", False, "Missing test user or channel")
+            return False
+            
+        success, data, status = self.make_request(
+            'GET', 
+            f"webrtc/signals/{self.test_voice_channel['id']}/{self.test_user_2['user']['id']}"
+        )
+        
+        if success and isinstance(data, list):
+            self.log_test("WebRTC Get Signals", True, f"Retrieved {len(data)} signals")
+            return True
+        else:
+            self.log_test("WebRTC Get Signals", False, f"Status: {status}, Data: {data}")
+            return False
+
+    def test_webrtc_ice_candidate(self):
+        """Test sending ICE candidate signal"""
+        if not self.test_user or not self.test_user_2 or not self.test_voice_channel:
+            self.log_test("WebRTC ICE Candidate", False, "Missing test users or channel")
+            return False
+            
+        signal_data = {
+            'from_user': self.test_user['id'],
+            'to_user': self.test_user_2['user']['id'],
+            'channel_id': self.test_voice_channel['id'],
+            'signal_type': 'ice-candidate',
+            'data': {
+                'candidate': 'candidate:1 1 UDP 2130706431 192.168.1.100 54400 typ host',
+                'sdpMLineIndex': 0,
+                'sdpMid': 'audio'
+            }
+        }
+        
+        success, data, status = self.make_request('POST', 'webrtc/signal', signal_data)
+        
+        if success:
+            self.log_test("WebRTC ICE Candidate", True, "ICE candidate sent successfully")
+            return True
+        else:
+            self.log_test("WebRTC ICE Candidate", False, f"Status: {status}, Data: {data}")
+            return False
+
+    def test_get_channel_participants(self):
+        """Test getting detailed channel participants"""
+        if not self.test_voice_channel:
+            self.log_test("Get Channel Participants", False, "No test channel available")
+            return False
+            
+        success, data, status = self.make_request(
+            'GET', 
+            f"voice-channels/{self.test_voice_channel['id']}/participants"
+        )
+        
+        if success and isinstance(data, list):
+            self.log_test("Get Channel Participants", True, f"Retrieved {len(data)} participants")
+            return True
+        else:
+            self.log_test("Get Channel Participants", False, f"Status: {status}, Data: {data}")
+            return False
+
+    def test_file_upload_avatar(self):
+        """Test avatar file upload"""
+        if not self.test_user or 'id' not in self.test_user:
+            self.log_test("File Upload Avatar", False, "No test user ID available")
+            return False
+            
+        # Create a simple test image file
+        import io
+        from PIL import Image
+        
+        # Create a small test image
+        img = Image.new('RGB', (100, 100), color='red')
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format='PNG')
+        img_bytes.seek(0)
+        
+        files = {'file': ('test_avatar.png', img_bytes, 'image/png')}
+        
+        success, data, status = self.make_request(
+            'POST', 
+            f"upload/{self.test_user['id']}/avatar",
+            files=files
+        )
+        
+        if success and 'file_url' in data:
+            self.log_test("File Upload Avatar", True, f"Avatar uploaded: {data['file_url']}")
+            return True
+        else:
+            self.log_test("File Upload Avatar", False, f"Status: {status}, Data: {data}")
+            return False
+
+    def test_delete_voice_channel(self):
+        """Test deleting a voice channel"""
+        if not self.test_voice_channel:
+            self.log_test("Delete Voice Channel", False, "No test channel available")
+            return False
+            
+        success, data, status = self.make_request(
+            'DELETE', 
+            f"voice-channels/{self.test_voice_channel['id']}"
+        )
+        
+        if success:
+            self.log_test("Delete Voice Channel", True, "Channel deleted successfully")
+            return True
+        else:
+            self.log_test("Delete Voice Channel", False, f"Status: {status}, Data: {data}")
+            return False
+
     def run_all_tests(self):
         """Run all backend tests"""
         print("🚀 Starting Convento Backend API Tests")
