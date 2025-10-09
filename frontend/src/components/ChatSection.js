@@ -103,26 +103,7 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
     }
   };
 
-  const uploadAudio = async (audioBlob) => {
-    const formData = new FormData();
-    formData.append('file', audioBlob, 'audio.webm');
-    
-    setSending(true);
-    try {
-      const uploadResponse = await axios.post(
-        `${API}/upload/${user.id}/audio`,
-        formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
-      );
-      
-      await sendMessage('Audio', 'audio', uploadResponse.data.file_url);
-    } catch (err) {
-      console.error('Error uploading audio:', err);
-      alert('Error al subir audio');
-    } finally {
-      setSending(false);
-    }
-  };
+  // Removed duplicate uploadAudio function
 
   const onDrop = async (acceptedFiles) => {
     const file = acceptedFiles[0];
