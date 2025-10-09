@@ -1,0 +1,248 @@
+.sidebar {
+  width: 280px;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ============= HEADER ============= */
+.sidebar-header {
+  margin-bottom: 30px;
+}
+
+.sidebar-title {
+  font-size: 32px;
+  font-weight: 700;
+  background-size: 200% 200%;
+}
+
+/* ============= USER INFO ============= */
+.sidebar-user {
+  padding: 15px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sidebar-user:hover {
+  transform: translateY(-2px);
+}
+
+.sidebar-user::before {
+  background: var(--aura-color, #8B5CF6);
+}
+
+.user-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.user-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.user-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #F8FAFC;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.user-status {
+  font-size: 12px;
+  color: #10B981;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ============= NAVIGATION ============= */
+.sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nav-item {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: rgba(248, 250, 252, 0.6);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  transition: all 0.3s ease;
+  text-align: left;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.nav-item:hover {
+  background: rgba(139, 92, 246, 0.1);
+  color: #F8FAFC;
+}
+
+.nav-item.active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.2));
+  color: #F8FAFC;
+  box-shadow: 0 5px 20px rgba(139, 92, 246, 0.3);
+}
+
+.nav-icon {
+  font-size: 20px;
+}
+
+.nav-label {
+  flex: 1;
+}
+
+.nav-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #8B5CF6, #06B6D4);
+  border-radius: 0 3px 3px 0;
+}
+
+/* ============= VOICE STATUS ============= */
+.voice-status {
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.voice-status-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: rgba(248, 250, 252, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.voice-icon {
+  font-size: 16px;
+}
+
+.voice-channel-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.voice-ping {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: rgba(248, 250, 252, 0.6);
+}
+
+.ping-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10B981;
+  display: inline-block;
+}
+
+/* ============= LOGOUT BUTTON ============= */
+.logout-btn {
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.1);
+  color: #FCA5A5;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.logout-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 5px 20px rgba(239, 68, 68, 0.3);
+}
+
+/* ============= RESPONSIVE ============= */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: fixed;
+    top: 0;
+    left: 0;
+    flex-direction: row;
+    padding: 10px;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .sidebar-header {
+    margin-bottom: 0;
+  }
+
+  .sidebar-title {
+    font-size: 20px;
+  }
+
+  .sidebar-user {
+    display: none;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .nav-label {
+    display: none;
+  }
+
+  .voice-status {
+    display: none;
+  }
+
+  .logout-btn {
+    padding: 10px;
+  }
+
+  .logout-btn span:last-child {
+    display: none;
+  }
+}
