@@ -323,8 +323,10 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     }
   };
 
-  const handleReceiveOffer = async (data) => {
-    const { from_user, offer } = data;
+  const handleReceiveOffer = async (signal) => {
+    const { from_user, data } = signal;
+    const { offer } = data;
+    
     console.log('📨 Received offer from:', from_user);
 
     const pc = createPeerConnection(from_user);
@@ -334,38 +336,42 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
-      socketRef.current.emit('webrtc_answer', {
-        from_user: user.id,
-        to_user: from_user,
-        answer: pc.localDescription,
-        channel_id: activeVoiceChannel.id,
+      console.log('📤 Sending answer to:', from_user);
+      await sendSignal(from_user, 'answer', {
+        answer: pc.localDescription
       });
     } catch (err) {
       console.error('Error handling offer:', err);
     }
   };
 
-  const handleReceiveAnswer = async (data) => {
-    const { from_user, answer } = data;
+  const handleReceiveAnswer = async (signal) => {
+    const { from_user, data } = signal;
+    const { answer } = data;
+    
     console.log('📨 Received answer from:', from_user);
 
     const pc = peerConnectionsRef.current[from_user];
     if (pc) {
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(answer));
+        console.log('✅ Answer processed successfully');
       } catch (err) {
         console.error('Error handling answer:', err);
       }
     }
   };
 
-  const handleReceiveIceCandidate = async (data) => {
-    const { from_user, candidate } = data;
+  const handleReceiveIceCandidate = async (signal) => {
+    const { from_user, data } = signal;
+    const { candidate } = data;
+    
     const pc = peerConnectionsRef.current[from_user];
 
     if (pc) {
       try {
         await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        console.log('🧊 ICE candidate added from:', from_user);
       } catch (err) {
         console.error('Error adding ICE candidate:', err);
       }
