@@ -696,31 +696,62 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
 
               {/* Participants */}
               <div className="participants-grid">
-                {participants.map((participant) => (
-                  <div key={participant.id} className="participant-card">
-                    <div 
-                      className="participant-avatar"
-                      style={{ borderColor: participant.aura_color }}
-                    >
-                      {participant.avatar_url ? (
-                        <img src={participant.avatar_url} alt={participant.username} />
-                      ) : (
-                        <UserIcon size={32} />
-                      )}
-                    </div>
-                    <span className="participant-name">
-                      {participant.id === user.id ? 'Tú' : participant.username}
-                    </span>
-                    {/* Audio visualizer placeholder */}
-                    <div className="audio-indicator">
-                      <div className="audio-bars">
-                        <div className="bar" />
-                        <div className="bar" />
-                        <div className="bar" />
+                {participants.map((participant) => {
+                  const isCurrentUser = participant.id === user.id;
+                  const userMuted = isCurrentUser ? isMuted : false; // TODO: Get other users' mute status
+                  const userDeafened = isCurrentUser ? isDeafened : false;
+                  
+                  return (
+                    <div key={participant.id} className="participant-card">
+                      <div className="participant-avatar-container">
+                        <div 
+                          className="participant-avatar"
+                          style={{ 
+                            borderColor: participant.aura_color,
+                            boxShadow: `0 0 15px ${participant.aura_color}40`
+                          }}
+                        >
+                          {participant.avatar_url ? (
+                            <img 
+                              src={participant.avatar_url} 
+                              alt={participant.username}
+                              className="avatar-image"
+                            />
+                          ) : (
+                            <UserIcon size={32} />
+                          )}
+                        </div>
+                        
+                        {/* Status indicators */}
+                        <div className="status-indicators">
+                          {userMuted && (
+                            <div className="status-indicator muted" title="Silenciado">
+                              <MicOffIcon size={12} />
+                            </div>
+                          )}
+                          {userDeafened && (
+                            <div className="status-indicator deafened" title="Ensordecido">
+                              <VolumeOffIcon size={12} />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <span className="participant-name">
+                        {isCurrentUser ? 'Tú' : participant.username}
+                      </span>
+                      
+                      {/* Speaking indicator */}
+                      <div className={`audio-indicator ${isCurrentUser && !isMuted ? 'speaking' : ''}`}>
+                        <div className="audio-bars">
+                          <div className="bar" />
+                          <div className="bar" />
+                          <div className="bar" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
