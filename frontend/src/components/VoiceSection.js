@@ -72,55 +72,75 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
   const [selectedOutputDevice, setSelectedOutputDevice] = useState('');
   const [showDeviceSettings, setShowDeviceSettings] = useState(false);
 
-  // WebSocket Signaling - REAL-TIME WORKING VERSION
+  // Robust WebRTC Signaling - Works in Kubernetes
   useEffect(() => {
     if (activeVoiceChannel && user) {
-      console.log('🔌 Starting WebSocket signaling for channel:', activeVoiceChannel.id);
+      console.log('🔄 Starting robust WebRTC signaling for channel:', activeVoiceChannel.id);
       
-      // Try Socket.IO first, fallback to polling if fails
-      const socket = io(BACKEND_URL, {
-        path: '/socket.io',
-        transports: ['polling'], // Force polling for Kubernetes compatibility
-        forceNew: true,
-        timeout: 5000
-      });
+      let signalingInterval;
+      let connectionAttempts = 0;
+      const MAX_ATTEMPTS = 3;
       
-      socketRef.current = socket;
+      const startSignaling = () => {
+        // Enhanced polling with better error handling
+        signalingInterval = setInterval(async () => {
+          try {
+            const response = await axios.get(
+              `${API}/webrtc/signals/${activeVoiceChannel.id}/${user.id}`,
+              { timeout: 5000 }
+            );
+            
+            const signals = response.data;
+            if (signals && signals.length > 0) {
+              console.log(`📨 Processing ${signals.length} WebRTC signals`);
+              
+              for (const signal of signals) {
+                try {
+                  switch (signal.signal_type) {
+                    case 'offer':
+                      await handleReceiveOffer(signal);
+                      break;
+                    case 'answer':
+                      await handleReceiveAnswer(signal);
+                      break;
+                    case 'ice-candidate':
+                      await handleReceiveIceCandidate(signal);
+                      break;
+                  }
+                } catch (signalError) {
+                  console.error('Error processing signal:', signalError);
+                }
+              }
+            }
+            
+            // Reset connection attempts on success
+            connectionAttempts = 0;
+            setSocketConnected(true);
+            
+          } catch (err) {
+            connectionAttempts++;
+            console.error(`WebRTC signaling error (attempt ${connectionAttempts}):`, err);
+            
+            if (connectionAttempts >= MAX_ATTEMPTS) {
+              console.log('🔄 Max attempts reached, restarting signaling...');
+              connectionAttempts = 0;
+            }
+            
+            setSocketConnected(false);
+          }
+        }, 800); // Faster polling for better real-time experience
+      };
 
-      socket.on('connect', () => {
-        console.log('✅ WebSocket connected for WebRTC signaling');
-        setSocketConnected(true);
-        
-        // Join the voice channel room
-        socket.emit('join_voice_channel', {
-          channel_id: activeVoiceChannel.id,
-          user_id: user.id
-        });
-      });
-
-      socket.on('disconnect', () => {
-        console.log('❌ WebSocket disconnected');
-        setSocketConnected(false);
-      });
-
-      // Handle WebRTC signaling events
-      socket.on('webrtc_offer', handleReceiveOffer);
-      socket.on('webrtc_answer', handleReceiveAnswer);
-      socket.on('webrtc_ice_candidate', handleReceiveIceCandidate);
-      socket.on('user_joined_voice', handleUserJoined);
-      socket.on('user_left_voice', handleUserLeft);
-
-      // Load participants
+      // Start signaling
+      startSignaling();
+      
+      // Load and monitor participants
       loadParticipants();
-      const participantsInterval = setInterval(loadParticipants, 3000);
+      const participantsInterval = setInterval(loadParticipants, 2500);
 
       return () => {
-        if (socket) {
-          socket.emit('leave_voice_channel', {
-            channel_id: activeVoiceChannel.id,
-            user_id: user.id
-          });
-          socket.disconnect();
+        if (signalingInterval) {
+          clearInterval(signalingInterval);
         }
         clearInterval(participantsInterval);
         setSocketConnected(false);
