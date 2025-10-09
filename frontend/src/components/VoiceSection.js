@@ -459,33 +459,7 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     }
   };
 
-  const handleUserJoined = (data) => {
-    const { user_id, username } = data;
-    console.log('👋 User joined voice channel:', username);
-    
-    // Create offer for new user after a short delay
-    setTimeout(() => {
-      if (user_id !== user.id && !peerConnectionsRef.current[user_id]) {
-        createOfferForUser(user_id);
-      }
-    }, 1000);
-    
-    loadParticipants();
-  };
-
-  const handleUserLeft = (data) => {
-    const { user_id, username } = data;
-    console.log('👋 User left voice channel:', username);
-    
-    // Clean up connection
-    if (peerConnectionsRef.current[user_id]) {
-      peerConnectionsRef.current[user_id].close();
-      delete peerConnectionsRef.current[user_id];
-    }
-    
-    cleanupUserConnection(user_id);
-    loadParticipants();
-  };
+  // Removed Socket.IO event handlers - using REST API polling
 
   const createPeerConnection = (remoteUserId) => {
     console.log(`🤝 Creating peer connection with ${remoteUserId}`);
