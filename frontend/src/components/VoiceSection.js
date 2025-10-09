@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import io from 'socket.io-client';
 import { 
   HeadphonesIcon, 
   MicIcon, 
