@@ -327,36 +327,68 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     console.log(`🤝 Creating peer connection with ${remoteUserId}`);
     const pc = new RTCPeerConnection(rtcConfig);
 
-    // Add local stream with all tracks
+    // Add local stream with all tracks - CRITICAL FIX
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => {
-        const sender = pc.addTrack(track, localStreamRef.current);
-        console.log(`➕ Added ${track.kind} track to peer connection`);
+        try {
+          pc.addTrack(track, localStreamRef.current);
+          console.log(`✅ Successfully added ${track.kind} track to peer connection with ${remoteUserId}`);
+          console.log(`Track settings:`, track.getSettings());
+        } catch (error) {
+          console.error(`❌ Failed to add ${track.kind} track:`, error);
+        }
       });
+    } else {
+      console.error('❌ No local stream available when creating peer connection');
     }
 
-    // Handle ICE candidates - Use REST API
+    // Handle ICE candidates - FIXED
     pc.onicecandidate = (event) => {
       if (event.candidate && activeVoiceChannel) {
         console.log('🧊 Sending ICE candidate to:', remoteUserId);
         sendSignal(remoteUserId, 'ice-candidate', {
-          candidate: event.candidate
+          candidate: {
+            candidate: event.candidate.candidate,
+            sdpMLineIndex: event.candidate.sdpMLineIndex,
+            sdpMid: event.candidate.sdpMid
+          }
         });
+      } else if (!event.candidate) {
+        console.log('🧊 ICE gathering completed for:', remoteUserId);
       }
     };
 
-    // Handle incoming remote stream - CRITICAL FIX
+    // Handle incoming remote stream - COMPLETELY FIXED
     pc.ontrack = (event) => {
-      console.log('📥 Received track from:', remoteUserId, event.track.kind);
+      console.log('📥 Received track from:', remoteUserId, 'Kind:', event.track.kind, 'Enabled:', event.track.enabled);
       const [remoteStream] = event.streams;
       
       if (event.track.kind === 'audio') {
-        // Create dedicated audio element for this user
+        // Force remove any existing audio element for this user
+        const existingAudio = document.querySelector(`audio[data-user-id="${remoteUserId}"]`);
+        if (existingAudio) {
+          existingAudio.remove();
+        }
+        
+        // Create new dedicated audio element
         const audioElement = document.createElement('audio');
         audioElement.srcObject = remoteStream;
         audioElement.autoplay = true;
         audioElement.controls = false;
         audioElement.volume = isDeafened ? 0 : 1;
+        audioElement.setAttribute('data-user-id', remoteUserId);
+        audioElement.style.display = 'none';
+        
+        // CRITICAL: Force play the audio
+        audioElement.play().then(() => {
+          console.log('🔊 Audio playing successfully for:', remoteUserId);
+        }).catch(error => {
+          console.error('❌ Failed to play audio for:', remoteUserId, error);
+          // Try again after user interaction
+          document.addEventListener('click', () => {
+            audioElement.play().catch(console.error);
+          }, { once: true });
+        });
         
         // Set output device if supported
         if (audioElement.setSinkId && selectedOutputDevice) {
@@ -365,64 +397,80 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
           });
         }
         
-        // Add to DOM (hidden)
-        audioElement.style.display = 'none';
-        audioElement.setAttribute('data-user-id', remoteUserId);
+        // Add to DOM
         document.body.appendChild(audioElement);
         
         // Store reference
         remoteStreamsRef.current[remoteUserId] = {
           stream: remoteStream,
-          audioElement: audioElement
+          audioElement: audioElement,
+          track: event.track
         };
         
-        console.log('🔊 Audio element created and playing for:', remoteUserId);
+        console.log('✅ Audio setup completed for:', remoteUserId);
         
       } else if (event.track.kind === 'video') {
         // Handle video/screen share
+        console.log('📺 Setting up video stream from:', remoteUserId);
         setRemoteScreens(prev => ({
           ...prev,
           [remoteUserId]: remoteStream
         }));
-        console.log('📺 Video stream received from:', remoteUserId);
       }
       
-      // Update UI to show user is connected
+      // Update participants
       loadParticipants();
     };
 
     // Enhanced connection state monitoring
     pc.onconnectionstatechange = () => {
-      console.log(`🔗 Connection state with ${remoteUserId}:`, pc.connectionState);
+      const state = pc.connectionState;
+      console.log(`🔗 Connection state with ${remoteUserId}: ${state}`);
       
-      if (pc.connectionState === 'connected') {
-        console.log(`✅ Successfully connected to ${remoteUserId}`);
-      } else if (pc.connectionState === 'disconnected') {
-        console.log(`⚠️ Disconnected from ${remoteUserId}`);
-        // Clean up audio element
-        const audioElement = document.querySelector(`audio[data-user-id="${remoteUserId}"]`);
-        if (audioElement) {
-          audioElement.remove();
-        }
-        delete remoteStreamsRef.current[remoteUserId];
-      } else if (pc.connectionState === 'failed') {
+      if (state === 'connected') {
+        console.log(`✅ Audio connection established with ${remoteUserId}`);
+      } else if (state === 'disconnected' || state === 'closed') {
+        console.log(`⚠️ Cleaning up connection with ${remoteUserId}`);
+        cleanupUserConnection(remoteUserId);
+      } else if (state === 'failed') {
         console.log(`❌ Connection failed with ${remoteUserId}, attempting reconnect...`);
-        // Try to reconnect
         setTimeout(() => {
-          if (peerConnectionsRef.current[remoteUserId] === pc) {
+          if (peerConnectionsRef.current[remoteUserId] === pc && activeVoiceChannel) {
             createOfferForUser(remoteUserId);
           }
-        }, 3000);
+        }, 2000);
       }
     };
 
     // ICE connection state monitoring
     pc.oniceconnectionstatechange = () => {
-      console.log(`🧊 ICE connection state with ${remoteUserId}:`, pc.iceConnectionState);
+      console.log(`🧊 ICE state with ${remoteUserId}: ${pc.iceConnectionState}`);
     };
 
     peerConnectionsRef.current[remoteUserId] = pc;
     return pc;
+  };
+
+  // Helper function to clean up user connections
+  const cleanupUserConnection = (userId) => {
+    // Remove audio element
+    const audioElement = document.querySelector(`audio[data-user-id="${userId}"]`);
+    if (audioElement) {
+      audioElement.pause();
+      audioElement.srcObject = null;
+      audioElement.remove();
+      console.log('🗑️ Removed audio element for:', userId);
+    }
+    
+    // Clean up references
+    delete remoteStreamsRef.current[userId];
+    
+    // Remove from remote screens
+    setRemoteScreens(prev => {
+      const newScreens = { ...prev };
+      delete newScreens[userId];
+      return newScreens;
+    });
   };
 
   const createOfferForUser = async (remoteUserId) => {
