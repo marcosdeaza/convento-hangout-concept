@@ -84,20 +84,45 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append('file', audioBlob, 'audio.webm');
+      
+      // Crear un archivo con nombre y tipo correcto
+      const audioFile = new File([audioBlob], 'voice_message.webm', { 
+        type: 'audio/webm' 
+      });
+      formData.append('file', audioFile);
 
-      console.log('📤 Uploading audio file...');
+      console.log('📤 Uploading audio file...', {
+        size: audioBlob.size,
+        type: audioBlob.type
+      });
+      
       const uploadResponse = await axios.post(
         `${API}/upload/${user.id}/audio`,
         formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
+        { 
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 30000 // 30 segundos timeout
+        }
       );
 
       console.log('✅ Audio uploaded successfully:', uploadResponse.data);
-      await sendMessage('Mensaje de voz', 'audio', uploadResponse.data.file_url);
+      
+      // Enviar mensaje con información del audio
+      await sendMessage('🎤 Mensaje de voz', 'audio', uploadResponse.data.file_url);
+      
     } catch (err) {
       console.error('❌ Error uploading audio:', err);
-      alert('Error al subir el audio');
+      
+      let errorMessage = 'Error al subir el audio';
+      if (err.response?.status === 413) {
+        errorMessage = 'El archivo de audio es demasiado grande';
+      } else if (err.code === 'ECONNABORTED') {
+        errorMessage = 'Timeout: el archivo tardó demasiado en subirse';
+      } else if (err.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      }
+      
+      alert(errorMessage);
     } finally {
       setUploading(false);
     }
