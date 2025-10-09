@@ -242,7 +242,8 @@
     padding: 10px;
   }
 
-  .logout-btn span:last-child {
-    display: none;
+  .logout-btn {
+    padding: 10px;
+    justify-content: center;
   }
 }
