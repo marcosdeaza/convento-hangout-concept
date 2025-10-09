@@ -320,12 +320,14 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
   };
 
   const createPeerConnection = (remoteUserId) => {
+    console.log(`🤝 Creating peer connection with ${remoteUserId}`);
     const pc = new RTCPeerConnection(rtcConfig);
 
-    // Add local stream with high quality
+    // Add local stream with all tracks
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => {
-        pc.addTrack(track, localStreamRef.current);
+        const sender = pc.addTrack(track, localStreamRef.current);
+        console.log(`➕ Added ${track.kind} track to peer connection`);
       });
     }
 
@@ -339,34 +341,80 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
       }
     };
 
-    // Handle incoming stream
+    // Handle incoming remote stream - CRITICAL FIX
     pc.ontrack = (event) => {
-      console.log('📥 Received track from:', remoteUserId);
+      console.log('📥 Received track from:', remoteUserId, event.track.kind);
       const [remoteStream] = event.streams;
       
-      // Play audio with enhanced settings
-      const audio = new Audio();
-      audio.srcObject = remoteStream;
-      audio.volume = isDeafened ? 0 : 1;
-      audio.play().catch(e => console.error('Error playing audio:', e));
-      
-      remoteStreamsRef.current[remoteUserId] = remoteStream;
+      if (event.track.kind === 'audio') {
+        // Create dedicated audio element for this user
+        const audioElement = document.createElement('audio');
+        audioElement.srcObject = remoteStream;
+        audioElement.autoplay = true;
+        audioElement.controls = false;
+        audioElement.volume = isDeafened ? 0 : 1;
+        
+        // Set output device if supported
+        if (audioElement.setSinkId && selectedOutputDevice) {
+          audioElement.setSinkId(selectedOutputDevice).catch(e => {
+            console.warn('Could not set audio output device:', e);
+          });
+        }
+        
+        // Add to DOM (hidden)
+        audioElement.style.display = 'none';
+        audioElement.setAttribute('data-user-id', remoteUserId);
+        document.body.appendChild(audioElement);
+        
+        // Store reference
+        remoteStreamsRef.current[remoteUserId] = {
+          stream: remoteStream,
+          audioElement: audioElement
+        };
+        
+        console.log('🔊 Audio element created and playing for:', remoteUserId);
+        
+      } else if (event.track.kind === 'video') {
+        // Handle video/screen share
+        setRemoteScreens(prev => ({
+          ...prev,
+          [remoteUserId]: remoteStream
+        }));
+        console.log('📺 Video stream received from:', remoteUserId);
+      }
       
       // Update UI to show user is connected
       loadParticipants();
     };
 
-    // Connection state monitoring
+    // Enhanced connection state monitoring
     pc.onconnectionstatechange = () => {
       console.log(`🔗 Connection state with ${remoteUserId}:`, pc.connectionState);
-      if (pc.connectionState === 'failed') {
+      
+      if (pc.connectionState === 'connected') {
+        console.log(`✅ Successfully connected to ${remoteUserId}`);
+      } else if (pc.connectionState === 'disconnected') {
+        console.log(`⚠️ Disconnected from ${remoteUserId}`);
+        // Clean up audio element
+        const audioElement = document.querySelector(`audio[data-user-id="${remoteUserId}"]`);
+        if (audioElement) {
+          audioElement.remove();
+        }
+        delete remoteStreamsRef.current[remoteUserId];
+      } else if (pc.connectionState === 'failed') {
+        console.log(`❌ Connection failed with ${remoteUserId}, attempting reconnect...`);
         // Try to reconnect
         setTimeout(() => {
           if (peerConnectionsRef.current[remoteUserId] === pc) {
             createOfferForUser(remoteUserId);
           }
-        }, 2000);
+        }, 3000);
       }
+    };
+
+    // ICE connection state monitoring
+    pc.oniceconnectionstatechange = () => {
+      console.log(`🧊 ICE connection state with ${remoteUserId}:`, pc.iceConnectionState);
     };
 
     peerConnectionsRef.current[remoteUserId] = pc;
