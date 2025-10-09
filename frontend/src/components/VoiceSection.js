@@ -760,7 +760,7 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
               <button
                 className={`channel-control-btn ${isMuted ? 'muted' : ''}`}
                 onClick={toggleMute}
-                title={isMuted ? 'Activar' : 'Silenciar'}
+                title={isMuted ? 'Activar micrófono' : 'Silenciar micrófono'}
               >
                 {isMuted ? <MicOffIcon size={24} /> : <MicIcon size={24} />}
               </button>
@@ -768,7 +768,7 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
               <button
                 className={`channel-control-btn ${isDeafened ? 'deafened' : ''}`}
                 onClick={toggleDeafen}
-                title={isDeafened ? 'Escuchar' : 'Ensordecer'}
+                title={isDeafened ? 'Activar audio' : 'Silenciar audio'}
               >
                 {isDeafened ? <VolumeOffIcon size={24} /> : <VolumeIcon size={24} />}
               </button>
@@ -782,6 +782,14 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
               </button>
 
               <button
+                className="channel-control-btn settings"
+                onClick={() => setShowDeviceSettings(!showDeviceSettings)}
+                title="Configuración de audio"
+              >
+                ⚙️
+              </button>
+
+              <button
                 className="channel-control-btn disconnect"
                 onClick={leaveChannel}
                 title="Desconectar"
@@ -789,6 +797,48 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
                 <XIcon size={24} />
               </button>
             </div>
+
+            {/* Audio Device Settings */}
+            <AnimatePresence>
+              {showDeviceSettings && (
+                <motion.div
+                  className="device-settings"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                >
+                  <h4>Configuración de Audio</h4>
+                  
+                  <div className="device-setting">
+                    <label>Micrófono:</label>
+                    <select 
+                      value={selectedInputDevice} 
+                      onChange={(e) => setSelectedInputDevice(e.target.value)}
+                    >
+                      {audioInputDevices.map(device => (
+                        <option key={device.deviceId} value={device.deviceId}>
+                          {device.label || `Micrófono ${device.deviceId.slice(0, 5)}`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="device-setting">
+                    <label>Altavoces:</label>
+                    <select 
+                      value={selectedOutputDevice} 
+                      onChange={(e) => setSelectedOutputDevice(e.target.value)}
+                    >
+                      {audioOutputDevices.map(device => (
+                        <option key={device.deviceId} value={device.deviceId}>
+                          {device.label || `Altavoz ${device.deviceId.slice(0, 5)}`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
