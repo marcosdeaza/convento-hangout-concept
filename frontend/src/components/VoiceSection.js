@@ -393,7 +393,7 @@ function VoiceSection({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
-            <span className="empty-icon">👻</span>
+            <GhostIcon size={80} color="rgba(248, 250, 252, 0.3)" />
             <p>No hay canales activos</p>
             <p className="empty-hint">Crea uno para empezar</p>
           </motion.div>
