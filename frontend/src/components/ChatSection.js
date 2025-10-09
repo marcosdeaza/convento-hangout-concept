@@ -261,8 +261,16 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
           <button
             type="button"
             className="action-btn"
-            onClick={() => document.getElementById('file-input').click()}
-            disabled={sending}
+            onClick={() => {
+              console.log('📎 Attach file button clicked');
+              const input = document.getElementById('file-input');
+              if (input) {
+                input.click();
+              } else {
+                console.error('❌ File input not found');
+              }
+            }}
+            disabled={sending || uploading}
             data-testid="attach-file-button"
             title="Adjuntar archivo"
           >
@@ -271,11 +279,15 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
           <input
             id="file-input"
             type="file"
-            style={{ display: 'none' }}
+            accept="image/*, .gif, .webp, .pdf, .doc, .docx, .txt, .zip, audio/*, video/*"
+            style={{ display: 'none', position: 'absolute', left: '-9999px' }}
             onChange={(e) => {
+              console.log('📎 File selected:', e.target.files[0]);
               if (e.target.files[0]) {
                 onDrop([e.target.files[0]]);
               }
+              // Reset input so same file can be selected again
+              e.target.value = '';
             }}
           />
 
