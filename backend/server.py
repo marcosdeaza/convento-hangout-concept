@@ -523,7 +523,7 @@ async def get_channel_participants(channel_id: str):
 app.include_router(api_router)
 
 app.add_middleware(
-    CORsMiddleware,
+    CORSMiddleware,
     allow_credentials=True,
     allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
     allow_methods=["*"],
