@@ -162,11 +162,13 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
       const participantsInterval = setInterval(loadParticipants, 2500);
 
       return () => {
-        if (signalingInterval) {
-          clearInterval(signalingInterval);
+        if (signalingPollingRef.current) {
+          clearInterval(signalingPollingRef.current);
+          signalingPollingRef.current = null;
         }
         clearInterval(participantsInterval);
         setSocketConnected(false);
+        console.log('🛑 WebRTC signaling completely stopped');
       };
     }
   }, [activeVoiceChannel, user]);
