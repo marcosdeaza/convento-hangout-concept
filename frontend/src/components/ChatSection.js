@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useDropzone } from 'react-dropzone';
 import { ChatIcon, MicIcon, PaperclipIcon, SendIcon, FileIcon } from '@/components/Icons';
+import AudioRecorder from '@/components/AudioRecorder';
 import './ChatSection.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
