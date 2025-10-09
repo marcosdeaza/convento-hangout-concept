@@ -922,11 +922,16 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
         const stream = await navigator.mediaDevices.getDisplayMedia({
           video: { 
             cursor: 'always',
-            width: { ideal: 1920, max: 1920 },
-            height: { ideal: 1080, max: 1080 },
-            frameRate: { ideal: 15, max: 30 }
+            displaySurface: 'monitor',
+            width: { ideal: 1920, max: 2560 },
+            height: { ideal: 1080, max: 1440 },
+            frameRate: { ideal: 30, max: 60 }
           },
-          audio: true, // Include system audio if available
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          }
         });
         
         console.log('✅ Screen capture stream acquired');
