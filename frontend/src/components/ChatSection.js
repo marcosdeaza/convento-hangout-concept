@@ -25,24 +25,24 @@ function ChatSection({ user, messages, socket, socketConnected, onRefresh }) {
   }, [messages]);
 
   const sendMessage = async (content, type = 'text', fileUrl = null) => {
-    if ((!content.trim() && !fileUrl) || sending) return;
+    if ((!content.trim() && !fileUrl) || sending) {
+      console.log('Cannot send: empty or already sending');\n      return;\n    }
 
+    console.log('\ud83d\ude80 Sending message:', { content, type, fileUrl, userId: user.id });
     setSending(true);
     try {
-      await axios.post(`${API}/messages`, {
+      const response = await axios.post(`${API}/messages`, {
         user_id: user.id,
         content: content || 'Archivo adjunto',
         message_type: type,
         file_url: fileUrl,
       });
+      console.log('\u2705 Message sent successfully:', response.data);
       setMessageText('');
     } catch (err) {
-      console.error('Error sending message:', err);
-      alert('Error al enviar mensaje');
-    } finally {
-      setSending(false);
-    }
-  };
+      console.error('\u274c Error sending message:', err);
+      console.error('Error details:', err.response?.data);
+      alert(`Error al enviar mensaje: ${err.response?.data?.detail || err.message}`);\n    } finally {\n      setSending(false);\n    }\n  };
 
   const handleSendMessage = (e) => {
     e.preventDefault();
