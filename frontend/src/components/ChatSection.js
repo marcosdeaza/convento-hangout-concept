@@ -15,6 +15,8 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
   const [sending, setSending] = useState(false);
   const [showAudioRecorder, setShowAudioRecorder] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [selectedUserProfile, setSelectedUserProfile] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
