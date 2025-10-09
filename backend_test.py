@@ -586,6 +586,7 @@ class ConventoAPITester:
         # File Upload Tests
         print("📁 File Upload Tests")
         self.test_file_upload_avatar()
+        self.test_file_retrieval()
         
         # Cleanup Tests
         print("🧹 Cleanup Tests")
