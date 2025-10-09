@@ -1,0 +1,456 @@
+/* ============= VOICE SECTION NEW ============= */
+.voice-section-new {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+/* ============= HEADER ============= */
+.voice-header {
+  padding: 24px 32px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.voice-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 32px;
+  font-weight: 700;
+  color: #F8FAFC;
+}
+
+.create-channel-fab {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.4);
+  transition: all 0.3s ease;
+}
+
+.create-channel-fab:hover {
+  box-shadow: 0 12px 48px rgba(139, 92, 246, 0.6);
+}
+
+/* ============= CHANNELS CONTAINER ============= */
+.channels-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  padding: 20px 0;
+}
+
+/* ============= CHANNEL BUBBLE ============= */
+.channel-bubble {
+  position: relative;
+  padding: 24px;
+  border-radius: 24px;
+  background: rgba(15, 15, 30, 0.6);
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.channel-bubble:hover {
+  border-color: var(--aura-color);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 48px var(--aura-color)40;
+}
+
+.channel-bubble.active {
+  border-color: var(--aura-color);
+  box-shadow: 0 0 40px var(--aura-color)60;
+  cursor: default;
+}
+
+.bubble-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  opacity: 0.3;
+  transition: opacity 0.3s ease;
+}
+
+.channel-bubble:hover .bubble-glow {
+  opacity: 0.6;
+}
+
+.bubble-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.bubble-header h4 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.active-badge {
+  font-size: 12px;
+  color: #10B981;
+  font-weight: 600;
+}
+
+.bubble-participants {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+}
+
+.participant-avatar-mini {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.2);
+  border: 2px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.no-participants {
+  font-size: 14px;
+  color: rgba(248, 250, 252, 0.5);
+}
+
+.more-participants {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(248, 250, 252, 0.7);
+  margin-left: 8px;
+}
+
+/* ============= EMPTY STATE ============= */
+.empty-voice-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.empty-voice-state h3 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #F8FAFC;
+  margin: 20px 0 8px;
+}
+
+.empty-voice-state p {
+  font-size: 16px;
+  color: rgba(248, 250, 252, 0.6);
+}
+
+/* ============= ACTIVE CHANNEL VIEW ============= */
+.active-channel-view {
+  position: fixed;
+  bottom: 0;
+  left: 280px;
+  right: 0;
+  height: 60vh;
+  background: rgba(15, 15, 30, 0.98);
+  backdrop-filter: blur(30px);
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -10px 60px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.channel-view-header {
+  padding: 20px 32px;
+  border-top: 4px solid;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.channel-info h3 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.channel-info span {
+  font-size: 14px;
+  color: rgba(248, 250, 252, 0.6);
+}
+
+.close-view-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(239, 68, 68, 0.2);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-view-btn:hover {
+  background: rgba(239, 68, 68, 0.4);
+  transform: scale(1.1);
+}
+
+.channel-view-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ============= SCREEN SHARE PREVIEW ============= */
+.screen-preview {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.screen-video {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.screen-label {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+}
+
+/* ============= PARTICIPANTS GRID ============= */
+.participants-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.participant-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.participant-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8B5CF6, #06B6D4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.participant-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #F8FAFC;
+  text-align: center;
+}
+
+/* ============= CONTROLS BAR ============= */
+.channel-controls-bar {
+  padding: 20px 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(15, 15, 30, 0.8);
+}
+
+.channel-control-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(139, 92, 246, 0.2);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.channel-control-btn:hover {
+  background: rgba(139, 92, 246, 0.4);
+  transform: scale(1.1);
+}
+
+.channel-control-btn.muted,
+.channel-control-btn.deafened,
+.channel-control-btn.sharing {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.channel-control-btn.disconnect {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.channel-control-btn.disconnect:hover {
+  background: rgba(239, 68, 68, 0.4);
+}
+
+/* ============= CREATE MODAL ============= */
+.create-channel-modal {
+  max-width: 500px;
+  width: 100%;
+  padding: 40px;
+  border-radius: 24px;
+}
+
+.create-channel-modal h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #F8FAFC;
+  margin: 0 0 30px;
+}
+
+.modal-field {
+  margin-bottom: 24px;
+}
+
+.modal-field label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(248, 250, 252, 0.8);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modal-field input[type="text"] {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 2px solid rgba(139, 92, 246, 0.2);
+  background: rgba(15, 15, 30, 0.8);
+  color: white;
+  font-size: 16px;
+  font-family: 'Space Grotesk', sans-serif;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.modal-field input[type="text"]:focus {
+  border-color: #8B5CF6;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.color-btn {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.color-btn:hover {
+  transform: scale(1.1);
+}
+
+.color-btn.selected {
+  border-color: white;
+  box-shadow: 0 0 20px currentColor;
+}
+
+.checkbox-field {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-transform: none !important;
+}
+
+.checkbox-field input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.field-hint {
+  font-size: 13px;
+  color: rgba(248, 250, 252, 0.5);
+  margin-top: 8px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.modal-actions button {
+  flex: 1;
+}
+
+/* ============= RESPONSIVE ============= */
+@media (max-width: 768px) {
+  .active-channel-view {
+    left: 0;
+    height: 70vh;
+  }
+  
+  .channels-container {
+    grid-template-columns: 1fr;
+  }
+}
