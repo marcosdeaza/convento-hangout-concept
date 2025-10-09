@@ -722,24 +722,53 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     }
   };
 
-  const handleReceiveIceCandidate = async (data) => {
-    const { from_user, candidate } = data;
+  // Queue for pending ICE candidates
+  const pendingIceCandidates = useRef({});
+
+  const handleReceiveIceCandidate = async (signal) => {
+    const { from_user, data } = signal;
+    const { candidate } = data;
     
-    console.log('📨 Processing WebSocket ICE candidate from:', from_user);
+    console.log('📨 Processing ICE candidate from:', from_user);
     
     const pc = peerConnectionsRef.current[from_user];
     if (pc && pc.remoteDescription) {
       try {
         const iceCandidate = new RTCIceCandidate(candidate);
         await pc.addIceCandidate(iceCandidate);
-        console.log('✅ WebSocket ICE candidate added from:', from_user);
+        console.log('✅ ICE candidate added from:', from_user);
       } catch (err) {
-        console.error('❌ Error adding WebSocket ICE candidate from', from_user, ':', err);
+        console.error('❌ Error adding ICE candidate from', from_user, ':', err);
       }
-    } else if (!pc) {
-      console.warn('⚠️ No peer connection found for WebSocket ICE candidate from:', from_user);
     } else {
-      console.warn('⚠️ Remote description not set, queuing WebSocket ICE candidate from:', from_user);
+      // Queue candidate if remote description not set yet
+      console.log('📦 Queuing ICE candidate from:', from_user);
+      if (!pendingIceCandidates.current[from_user]) {
+        pendingIceCandidates.current[from_user] = [];
+      }
+      pendingIceCandidates.current[from_user].push(candidate);
+    }
+  };
+
+  // Process queued ICE candidates after setting remote description
+  const processQueuedIceCandidates = async (userId) => {
+    const pc = peerConnectionsRef.current[userId];
+    const queuedCandidates = pendingIceCandidates.current[userId];
+    
+    if (pc && queuedCandidates && queuedCandidates.length > 0) {
+      console.log(`📦 Processing ${queuedCandidates.length} queued ICE candidates for:`, userId);
+      
+      for (const candidate of queuedCandidates) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          console.log('✅ Queued ICE candidate processed for:', userId);
+        } catch (err) {
+          console.error('❌ Error processing queued ICE candidate:', err);
+        }
+      }
+      
+      // Clear the queue
+      pendingIceCandidates.current[userId] = [];
     }
   };
 
