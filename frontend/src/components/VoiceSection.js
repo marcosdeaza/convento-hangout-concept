@@ -89,53 +89,70 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
       const MAX_ATTEMPTS = 3;
       
       const startSignaling = () => {
-        // Enhanced polling with better error handling
-        signalingInterval = setInterval(async () => {
+        console.log('🚀 Starting aggressive WebRTC signaling...');
+        
+        // AGGRESSIVE polling for production
+        signalingPollingRef.current = setInterval(async () => {
           try {
             const response = await axios.get(
               `${API}/webrtc/signals/${activeVoiceChannel.id}/${user.id}`,
-              { timeout: 5000 }
+              { 
+                timeout: 3000,
+                headers: {
+                  'Cache-Control': 'no-cache',
+                  'Pragma': 'no-cache'
+                }
+              }
             );
             
             const signals = response.data;
             if (signals && signals.length > 0) {
-              console.log(`📨 Processing ${signals.length} WebRTC signals`);
+              console.log(`🔥 PROCESSING ${signals.length} CRITICAL WebRTC signals`);
               
-              for (const signal of signals) {
+              // Process signals in parallel for speed
+              const signalPromises = signals.map(async (signal) => {
                 try {
                   switch (signal.signal_type) {
                     case 'offer':
-                      await handleReceiveOffer(signal);
-                      break;
+                      return handleReceiveOffer(signal);
                     case 'answer':
-                      await handleReceiveAnswer(signal);
-                      break;
+                      return handleReceiveAnswer(signal);
                     case 'ice-candidate':
-                      await handleReceiveIceCandidate(signal);
-                      break;
+                      return handleReceiveIceCandidate(signal);
                   }
                 } catch (signalError) {
-                  console.error('Error processing signal:', signalError);
+                  console.error(`❌ Signal ${signal.signal_type} failed:`, signalError);
                 }
-              }
+              });
+              
+              await Promise.allSettled(signalPromises);
             }
             
-            // Reset connection attempts on success
+            // Connection is alive
             connectionAttempts = 0;
             setSocketConnected(true);
             
           } catch (err) {
             connectionAttempts++;
-            console.error(`WebRTC signaling error (attempt ${connectionAttempts}):`, err);
+            console.error(`🚨 SIGNALING FAILED (${connectionAttempts}/${MAX_ATTEMPTS}):`, err.message);
             
             if (connectionAttempts >= MAX_ATTEMPTS) {
-              console.log('🔄 Max attempts reached, restarting signaling...');
+              console.log('🔄 RESTARTING signaling - max attempts reached');
               connectionAttempts = 0;
+              
+              // Brief pause before retry
+              setTimeout(() => {
+                if (activeVoiceChannel) { // Only restart if still in channel
+                  startSignaling();
+                }
+              }, 2000);
+              
+              return; // Exit this interval, new one will start
             }
             
             setSocketConnected(false);
           }
-        }, 800); // Faster polling for better real-time experience
+        }, 500); // ULTRA FAST polling for production
       };
 
       // Start signaling
