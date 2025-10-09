@@ -135,13 +135,6 @@ function Dashboard({ user, onLogout, onUserUpdate }) {
     <div className="dashboard" data-testid="dashboard">
       <div className="aurora-bg" />
 
-      {/* Socket Connection Indicator */}
-      {!socketConnected && (
-        <div className="socket-indicator">
-          <span>Reconectando...</span>
-        </div>
-      )}
-
       <Sidebar
         user={currentUser}
         activeSection={activeSection}
