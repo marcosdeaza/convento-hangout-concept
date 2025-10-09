@@ -242,14 +242,12 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
 
           <motion.button
             type="button"
-            className={`action-btn ${recording ? 'recording' : ''}`}
-            onMouseDown={startRecording}
-            onMouseUp={stopRecording}
-            onMouseLeave={stopRecording}
+            className="action-btn"
+            onClick={handleStartRecording}
             whileTap={{ scale: 0.9 }}
-            disabled={sending}
+            disabled={sending || uploading}
             data-testid="voice-record-button"
-            title="Mantén presionado para grabar"
+            title="Grabar mensaje de voz"
           >
             <MicIcon size={20} />
           </motion.button>
