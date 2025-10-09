@@ -273,19 +273,31 @@ function ProfileSection({ user, onUpdate }) {
             )}
             <motion.button
               className="edit-avatar-btn"
-              onClick={() => document.getElementById('avatar-input').click()}
+              onClick={() => {
+                console.log('👤 Avatar button clicked');
+                const input = document.getElementById('avatar-input');
+                if (input) {
+                  input.click();
+                } else {
+                  console.error('❌ Avatar input not found');
+                }
+              }}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               data-testid="edit-avatar-button"
+              title="Cambiar avatar"
             >
               <CameraIcon size={18} />
             </motion.button>
             <input
               id="avatar-input"
               type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={onSelectAvatar}
+              accept="image/*, .gif, .webp"
+              style={{ display: 'none', position: 'absolute', left: '-9999px' }}
+              onChange={(e) => {
+                console.log('👤 Avatar file selected:', e.target.files[0]);
+                onSelectAvatar(e);
+              }}
             />
           </div>
         </div>
