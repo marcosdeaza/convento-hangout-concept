@@ -403,12 +403,26 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
         setIsMuted(!audioTrack.enabled);
+        console.log(audioTrack.enabled ? '🔊 Micrófono activado' : '🔇 Micrófono silenciado');
       }
     }
   };
 
   const toggleDeafen = () => {
-    setIsDeafened(!isDeafened);
+    const newDeafened = !isDeafened;
+    setIsDeafened(newDeafened);
+    
+    // Mute/unmute all remote audio
+    Object.values(remoteStreamsRef.current).forEach(stream => {
+      const audioElements = document.querySelectorAll('audio');
+      audioElements.forEach(audio => {
+        if (audio.srcObject === stream) {
+          audio.volume = newDeafened ? 0 : 1;
+        }
+      });
+    });
+    
+    console.log(newDeafened ? '🙉 Audio silenciado' : '🔊 Audio activado');
   };
 
   const toggleScreenShare = async () => {
