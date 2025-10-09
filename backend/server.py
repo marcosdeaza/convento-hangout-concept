@@ -156,6 +156,89 @@ async def parse_from_mongo(item: dict) -> dict:
         item['timestamp'] = datetime.fromisoformat(item['timestamp'])
     return item
 
+# ============= SOCKET.IO EVENT HANDLERS =============
+
+@sio.event
+async def connect(sid, environ):
+    logger.info(f"Client {sid} connected")
+
+@sio.event
+async def disconnect(sid):
+    logger.info(f"Client {sid} disconnected")
+    
+    # Clean up user from all voice channel rooms
+    for channel_id, users in voice_channel_rooms.items():
+        if sid in users:
+            users.remove(sid)
+            # Notify other users in the channel
+            await sio.emit('user_left_voice', {
+                'user_id': sid,  # We'll improve this with actual user mapping
+                'username': 'User'
+            }, room=f'voice_{channel_id}')
+
+@sio.event
+async def join_voice_channel(sid, data):
+    channel_id = data.get('channel_id')
+    user_id = data.get('user_id')
+    
+    logger.info(f"User {user_id} joining voice channel {channel_id}")
+    
+    # Join Socket.IO room
+    await sio.enter_room(sid, f'voice_{channel_id}')
+    
+    # Track in voice channel rooms
+    if channel_id not in voice_channel_rooms:
+        voice_channel_rooms[channel_id] = set()
+    voice_channel_rooms[channel_id].add(sid)
+    
+    # Notify other users in the channel
+    await sio.emit('user_joined_voice', {
+        'user_id': user_id,
+        'username': f'User_{user_id[:8]}'  # Simplified for now
+    }, room=f'voice_{channel_id}', skip_sid=sid)
+
+@sio.event
+async def leave_voice_channel(sid, data):
+    channel_id = data.get('channel_id')
+    user_id = data.get('user_id')
+    
+    logger.info(f"User {user_id} leaving voice channel {channel_id}")
+    
+    # Leave Socket.IO room
+    await sio.leave_room(sid, f'voice_{channel_id}')
+    
+    # Remove from tracking
+    if channel_id in voice_channel_rooms:
+        voice_channel_rooms[channel_id].discard(sid)
+    
+    # Notify other users
+    await sio.emit('user_left_voice', {
+        'user_id': user_id,
+        'username': f'User_{user_id[:8]}'
+    }, room=f'voice_{channel_id}')
+
+@sio.event
+async def webrtc_signal(sid, data):
+    """Handle WebRTC signaling between users"""
+    signal_type = data.get('signal_type')
+    from_user = data.get('from_user')
+    to_user = data.get('to_user')
+    channel_id = data.get('channel_id')
+    signal_data = data.get('data')
+    
+    logger.info(f"WebRTC signal: {signal_type} from {from_user} to {to_user} in channel {channel_id}")
+    
+    # Find the target user's socket ID (simplified - in production you'd maintain user->sid mapping)
+    target_room = f'voice_{channel_id}'
+    
+    # Emit to specific user in the channel (Socket.IO will handle delivery)
+    await sio.emit(f'webrtc_{signal_type}', {
+        'from_user': from_user,
+        'to_user': to_user,
+        'channel_id': channel_id,
+        **signal_data
+    }, room=target_room)
+
 # ============= API ENDPOINTS =============
 
 @api_router.post("/auth/register")
