@@ -548,6 +548,7 @@ class ConventoAPITester:
         # Authentication Tests
         print("📝 Authentication Tests")
         self.test_auth_register()
+        self.test_access_code_validation()
         self.test_auth_login_invalid_code()
         if self.test_user:
             self.test_auth_login()
