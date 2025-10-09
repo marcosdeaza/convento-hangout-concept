@@ -418,29 +418,29 @@ class ConventoAPITester:
             self.log_test("File Upload Avatar", False, "No test user ID available")
             return False
             
-        # Create a simple test image file
-        import io
-        from PIL import Image
-        
-        # Create a small test image
-        img = Image.new('RGB', (100, 100), color='red')
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format='PNG')
-        img_bytes.seek(0)
-        
-        files = {'file': ('test_avatar.png', img_bytes, 'image/png')}
-        
-        success, data, status = self.make_request(
-            'POST', 
-            f"upload/{self.test_user['id']}/avatar",
-            files=files
-        )
-        
-        if success and 'file_url' in data:
-            self.log_test("File Upload Avatar", True, f"Avatar uploaded: {data['file_url']}")
-            return True
-        else:
-            self.log_test("File Upload Avatar", False, f"Status: {status}, Data: {data}")
+        try:
+            # Create a small test image
+            img = Image.new('RGB', (100, 100), color='red')
+            img_bytes = io.BytesIO()
+            img.save(img_bytes, format='PNG')
+            img_bytes.seek(0)
+            
+            files = {'file': ('test_avatar.png', img_bytes, 'image/png')}
+            
+            success, data, status = self.make_request(
+                'POST', 
+                f"upload/{self.test_user['id']}/avatar",
+                files=files
+            )
+            
+            if success and 'file_url' in data:
+                self.log_test("File Upload Avatar", True, f"Avatar uploaded: {data['file_url']}")
+                return True
+            else:
+                self.log_test("File Upload Avatar", False, f"Status: {status}, Data: {data}")
+                return False
+        except Exception as e:
+            self.log_test("File Upload Avatar", False, f"Error creating test image: {e}")
             return False
 
     def test_delete_voice_channel(self):
