@@ -235,24 +235,36 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     }
   };
 
+  const sendSignal = async (toUserId, signalType, data) => {
+    try {
+      await axios.post(`${API}/webrtc/signal`, {
+        from_user: user.id,
+        to_user: toUserId,
+        channel_id: activeVoiceChannel.id,
+        signal_type: signalType,
+        data: data
+      });
+    } catch (err) {
+      console.error('Error sending signal:', err);
+    }
+  };
+
   const createPeerConnection = (remoteUserId) => {
     const pc = new RTCPeerConnection(rtcConfig);
 
-    // Add local stream
+    // Add local stream with high quality
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => {
         pc.addTrack(track, localStreamRef.current);
       });
     }
 
-    // Handle ICE candidates
+    // Handle ICE candidates - Use REST API
     pc.onicecandidate = (event) => {
-      if (event.candidate && socketRef.current) {
-        socketRef.current.emit('webrtc_ice_candidate', {
-          from_user: user.id,
-          to_user: remoteUserId,
-          candidate: event.candidate,
-          channel_id: activeVoiceChannel.id,
+      if (event.candidate && activeVoiceChannel) {
+        console.log('🧊 Sending ICE candidate to:', remoteUserId);
+        sendSignal(remoteUserId, 'ice-candidate', {
+          candidate: event.candidate
         });
       }
     };
@@ -262,16 +274,53 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
       console.log('📥 Received track from:', remoteUserId);
       const [remoteStream] = event.streams;
       
-      // Play audio
+      // Play audio with enhanced settings
       const audio = new Audio();
       audio.srcObject = remoteStream;
+      audio.volume = isDeafened ? 0 : 1;
       audio.play().catch(e => console.error('Error playing audio:', e));
       
       remoteStreamsRef.current[remoteUserId] = remoteStream;
+      
+      // Update UI to show user is connected
+      loadParticipants();
+    };
+
+    // Connection state monitoring
+    pc.onconnectionstatechange = () => {
+      console.log(`🔗 Connection state with ${remoteUserId}:`, pc.connectionState);
+      if (pc.connectionState === 'failed') {
+        // Try to reconnect
+        setTimeout(() => {
+          if (peerConnectionsRef.current[remoteUserId] === pc) {
+            createOfferForUser(remoteUserId);
+          }
+        }, 2000);
+      }
     };
 
     peerConnectionsRef.current[remoteUserId] = pc;
     return pc;
+  };
+
+  const createOfferForUser = async (remoteUserId) => {
+    try {
+      const pc = createPeerConnection(remoteUserId);
+      
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+      });
+      
+      await pc.setLocalDescription(offer);
+      
+      console.log('📤 Sending offer to:', remoteUserId);
+      await sendSignal(remoteUserId, 'offer', {
+        offer: pc.localDescription
+      });
+    } catch (err) {
+      console.error('Error creating offer:', err);
+    }
   };
 
   const handleReceiveOffer = async (data) => {
