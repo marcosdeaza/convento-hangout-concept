@@ -70,21 +70,23 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
   const [selectedOutputDevice, setSelectedOutputDevice] = useState('');
   const [showDeviceSettings, setShowDeviceSettings] = useState(false);
 
-  // REST API Signaling Polling - Replace Socket.IO
+  // REST API Signaling Polling - FIXED VERSION
   useEffect(() => {
     if (activeVoiceChannel && user) {
       console.log('🔄 Starting WebRTC signaling polling for channel:', activeVoiceChannel.id);
       
-      // Start polling for signals every 1 second
+      // Start polling for signals every 500ms for better responsiveness
       signalingPollingRef.current = setInterval(async () => {
         try {
           const response = await axios.get(`${API}/webrtc/signals/${activeVoiceChannel.id}/${user.id}`);
           const signals = response.data;
           
           if (signals && signals.length > 0) {
-            console.log(`📨 Received ${signals.length} signals`);
+            console.log(`📨 Received ${signals.length} signals for processing`);
             
             for (const signal of signals) {
+              console.log(`Processing signal: ${signal.signal_type} from ${signal.from_user}`);
+              
               switch (signal.signal_type) {
                 case 'offer':
                   await handleReceiveOffer(signal);
@@ -95,17 +97,19 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
                 case 'ice-candidate':
                   await handleReceiveIceCandidate(signal);
                   break;
+                default:
+                  console.warn('Unknown signal type:', signal.signal_type);
               }
             }
           }
         } catch (err) {
           console.error('Error polling WebRTC signals:', err);
         }
-      }, 1000);
+      }, 500); // Faster polling for better real-time experience
 
       // Load participants and refresh periodically
       loadParticipants();
-      const participantsInterval = setInterval(loadParticipants, 3000);
+      const participantsInterval = setInterval(loadParticipants, 2000);
 
       return () => {
         if (signalingPollingRef.current) {
