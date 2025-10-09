@@ -379,52 +379,97 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
   };
 
   const leaveChannel = async () => {
-    if (!activeVoiceChannel) return;
+    if (!activeVoiceChannel) {
+      console.log('⚠️ No active channel to leave');
+      return;
+    }
 
     try {
-      console.log('👋 Leaving channel:', activeVoiceChannel.name);
+      console.log('👋 FORCE LEAVING CHANNEL:', activeVoiceChannel.name);
 
-      // Stop signaling polling
+      // STEP 1: Stop all polling/signaling immediately
       if (signalingPollingRef.current) {
         clearInterval(signalingPollingRef.current);
         signalingPollingRef.current = null;
+        console.log('✅ Stopped signaling polling');
       }
 
-      // Stop all local tracks
+      // STEP 2: Stop ALL media tracks immediately
       if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(track => {
+        localStreamRef.current.getTracks().forEach((track, index) => {
           track.stop();
-          console.log('🔇 Stopped local track:', track.kind);
+          console.log(`🔇 Stopped local ${track.kind} track ${index}`);
         });
         localStreamRef.current = null;
       }
 
-      // Stop screen sharing
+      // STEP 3: Stop screen sharing immediately
       if (screenStream) {
-        screenStream.getTracks().forEach(track => track.stop());
+        screenStream.getTracks().forEach((track, index) => {
+          track.stop();
+          console.log(`🖥️ Stopped screen track ${index}`);
+        });
         setScreenStream(null);
         setIsScreenSharing(false);
       }
 
-      // Close all peer connections and clean up audio elements
-      Object.keys(peerConnectionsRef.current).forEach(userId => {
-        const pc = peerConnectionsRef.current[userId];
-        pc.close();
-        
-        // Clean up audio elements
-        cleanupUserConnection(userId);
-        
-        console.log('🔌 Closed connection with:', userId);
+      // STEP 4: Force close ALL peer connections
+      const connectionIds = Object.keys(peerConnectionsRef.current);
+      console.log(`🔌 Force closing ${connectionIds.length} peer connections`);
+      
+      connectionIds.forEach(userId => {
+        try {
+          const pc = peerConnectionsRef.current[userId];
+          if (pc) {
+            pc.close();
+            console.log(`✅ Closed peer connection with ${userId}`);
+          }
+          
+          // Force cleanup audio elements
+          cleanupUserConnection(userId);
+          
+        } catch (err) {
+          console.error(`❌ Error closing connection with ${userId}:`, err);
+        }
       });
       
-      // Clear all references
+      // STEP 5: Clear ALL references immediately
       peerConnectionsRef.current = {};
       remoteStreamsRef.current = {};
+      pendingIceCandidates.current = {};
 
-      // Leave on server
-      await axios.post(`${API}/voice-channels/${activeVoiceChannel.id}/leave?user_id=${user.id}`);
+      // STEP 6: Force UI reset FIRST (so user sees immediate response)
+      setActiveVoiceChannel(null);
+      setIsMuted(false);
+      setIsDeafened(false);
+      setRemoteScreens({});
+      setParticipants([]);
+      setShowDeviceSettings(false);
+      setSocketConnected(false);
       
-      // Reset UI state
+      console.log('✅ UI state reset - user should see they left');
+
+      // STEP 7: Leave on server (async, don't wait)
+      try {
+        await axios.post(`${API}/voice-channels/${activeVoiceChannel.id}/leave?user_id=${user.id}`, {}, {
+          timeout: 3000
+        });
+        console.log('✅ Successfully left on server');
+      } catch (serverErr) {
+        console.warn('⚠️ Server leave failed but continuing:', serverErr.message);
+      }
+
+      // STEP 8: Refresh channels list
+      setTimeout(() => {
+        onRefresh();
+      }, 500);
+      
+      console.log('🎉 SUCCESSFULLY LEFT CHANNEL - USER IS FREE!');
+      
+    } catch (err) {
+      console.error('❌ Error in leave process:', err);
+      
+      // FORCE UI reset even if something fails
       setActiveVoiceChannel(null);
       setIsMuted(false);
       setIsDeafened(false);
@@ -432,12 +477,7 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
       setParticipants([]);
       setShowDeviceSettings(false);
       
-      // Refresh channels list
-      onRefresh();
-      
-      console.log('✅ Successfully left channel');
-    } catch (err) {
-      console.error('❌ Error leaving channel:', err);
+      console.log('🚨 EMERGENCY EXIT - UI reset to free user');
     }
   };
 
