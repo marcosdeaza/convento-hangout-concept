@@ -186,51 +186,74 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
 
   const joinChannel = async (channel) => {
     try {
-      console.log('🎤 Joining channel:', channel.name);
+      console.log('🎤 Joining voice channel:', channel.name);
       
-      // Enhanced audio constraints with device selection
-      const constraints = {
+      // STEP 1: Get microphone permission with simplified constraints first
+      console.log('🎧 Requesting microphone access...');
+      
+      const basicConstraints = {
         audio: {
-          ...audioConstraints.audio,
-          deviceId: selectedInputDevice ? { exact: selectedInputDevice } : undefined
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          ...(selectedInputDevice && { deviceId: { exact: selectedInputDevice } })
         }
       };
       
-      // Get high-quality microphone stream with selected device
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      const stream = await navigator.mediaDevices.getUserMedia(basicConstraints);
       localStreamRef.current = stream;
       
       const audioTrack = stream.getAudioTracks()[0];
-      console.log('🎧 Audio stream acquired:', {
-        deviceId: audioTrack.getSettings().deviceId,
-        sampleRate: audioTrack.getSettings().sampleRate,
-        channelCount: audioTrack.getSettings().channelCount,
-        label: audioTrack.label
+      console.log('✅ Microphone access granted:', {
+        label: audioTrack.label,
+        enabled: audioTrack.enabled,
+        muted: audioTrack.muted,
+        settings: audioTrack.getSettings()
       });
       
-      // Join on server
+      // STEP 2: Join channel on server
+      console.log('🌐 Joining channel on server...');
       await axios.post(`${API}/voice-channels/${channel.id}/join?user_id=${user.id}`);
       
+      // STEP 3: Update UI state
       setActiveVoiceChannel(channel);
+      setIsMuted(false);
+      setIsDeafened(false);
       onRefresh();
       
-      // Start connecting to existing participants
+      console.log('✅ Successfully joined channel on server');
+      
+      // STEP 4: Initialize WebRTC connections after a delay
+      console.log('🔄 Initializing WebRTC connections...');
       setTimeout(() => {
         initializePeerConnections();
-      }, 2000); // Increased timeout for better connection establishment
+      }, 1500);
       
-      console.log('✅ Joined channel successfully');
+      console.log('🎉 Channel join process completed!');
       
     } catch (err) {
-      console.error('❌ Error joining channel:', err);
-      let errorMessage = 'Error al unirse al canal';
+      console.error('❌ Failed to join channel:', err);
+      
+      // Clean up on error
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = null;
+      }
+      
+      let errorMessage = 'Error al unirse al canal: ';
       
       if (err.name === 'NotAllowedError') {
-        errorMessage = 'Permiso de micrófono denegado. Por favor permite el acceso y recarga la página.';
+        errorMessage += 'Permiso de micrófono denegado. Haz clic en "Permitir" cuando el navegador lo solicite.';
       } else if (err.name === 'NotFoundError') {
-        errorMessage = 'No se encontró micrófono. Verifica que tienes uno conectado.';
+        errorMessage += 'No se encontró micrófono. Conecta un micrófono e intenta de nuevo.';
       } else if (err.name === 'OverconstrainedError') {
-        errorMessage = 'El dispositivo de audio seleccionado no es compatible. Cambia el dispositivo e intenta de nuevo.';
+        errorMessage += 'Problema con el dispositivo de audio seleccionado.';
+        // Try with default device
+        setSelectedInputDevice('');
+      } else if (err.response?.status === 404) {
+        errorMessage += 'Canal no encontrado.';
+      } else {
+        errorMessage += err.message || 'Error desconocido.';
       }
       
       alert(errorMessage);
