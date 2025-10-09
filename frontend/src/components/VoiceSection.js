@@ -429,33 +429,55 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     if (isScreenSharing) {
       // Stop sharing
       if (screenStream) {
-        screenStream.getTracks().forEach(track => track.stop());
+        screenStream.getTracks().forEach(track => {
+          track.stop();
+          console.log('🖥️ Stopped screen sharing');
+        });
+        
+        // Remove video tracks from peer connections
+        Object.values(peerConnectionsRef.current).forEach(pc => {
+          const videoSenders = pc.getSenders().filter(s => s.track?.kind === 'video');
+          videoSenders.forEach(sender => {
+            pc.removeTrack(sender);
+          });
+        });
+        
         setScreenStream(null);
         setIsScreenSharing(false);
+        setRemoteScreens({});
       }
     } else {
       // Start sharing
       try {
         const stream = await navigator.mediaDevices.getDisplayMedia({
-          video: { cursor: 'always' },
+          video: { 
+            cursor: 'always',
+            mediaSource: 'screen',
+            width: { max: 1920 },
+            height: { max: 1080 },
+            frameRate: { max: 30 }
+          },
           audio: false,
         });
         
         setScreenStream(stream);
         setIsScreenSharing(true);
+        console.log('🖥️ Started screen sharing');
 
-        // Add to peer connections
+        // Add to existing peer connections
         const videoTrack = stream.getVideoTracks()[0];
         Object.values(peerConnectionsRef.current).forEach(pc => {
           const sender = pc.getSenders().find(s => s.track?.kind === 'video');
           if (sender) {
-            sender.replaceTrack(videoTrack);
+            sender.replaceTrack(videoTrack).catch(e => console.error('Error replacing video track:', e));
           } else {
             pc.addTrack(videoTrack, stream);
           }
         });
 
+        // Handle screen share ending
         videoTrack.onended = () => {
+          console.log('🖥️ Screen share ended by system');
           toggleScreenShare();
         };
       } catch (err) {
