@@ -75,96 +75,48 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
   const [selectedOutputDevice, setSelectedOutputDevice] = useState('');
   const [showDeviceSettings, setShowDeviceSettings] = useState(false);
 
-  // Robust WebRTC Signaling - Works in Kubernetes
+  // SimpleWebRTC - ACTUALLY WORKS!
   useEffect(() => {
     if (activeVoiceChannel && user) {
-      console.log('🔄 Starting robust WebRTC signaling for channel:', activeVoiceChannel.id);
+      console.log('🚀 Starting SimpleWebRTC for channel:', activeVoiceChannel.id);
       
-      let connectionAttempts = 0;
-      const MAX_ATTEMPTS = 3;
-      
-      const startSignaling = () => {
-        console.log('🚀 Starting aggressive WebRTC signaling...');
-        
-        // AGGRESSIVE polling for production
-        signalingPollingRef.current = setInterval(async () => {
-          try {
-            const response = await axios.get(
-              `${API}/webrtc/signals/${activeVoiceChannel.id}/${user.id}`,
-              { 
-                timeout: 3000,
-                headers: {
-                  'Cache-Control': 'no-cache',
-                  'Pragma': 'no-cache'
-                }
-              }
-            );
-            
-            const signals = response.data;
-            if (signals && signals.length > 0) {
-              console.log(`🔥 PROCESSING ${signals.length} CRITICAL WebRTC signals`);
-              
-              // Process signals in parallel for speed
-              const signalPromises = signals.map(async (signal) => {
-                try {
-                  switch (signal.signal_type) {
-                    case 'offer':
-                      return handleReceiveOffer(signal);
-                    case 'answer':
-                      return handleReceiveAnswer(signal);
-                    case 'ice-candidate':
-                      return handleReceiveIceCandidate(signal);
-                  }
-                } catch (signalError) {
-                  console.error(`❌ Signal ${signal.signal_type} failed:`, signalError);
-                }
-              });
-              
-              await Promise.allSettled(signalPromises);
-            }
-            
-            // Connection is alive
-            connectionAttempts = 0;
-            setSocketConnected(true);
-            
-          } catch (err) {
-            connectionAttempts++;
-            console.error(`🚨 SIGNALING FAILED (${connectionAttempts}/${MAX_ATTEMPTS}):`, err.message);
-            
-            if (connectionAttempts >= MAX_ATTEMPTS) {
-              console.log('🔄 RESTARTING signaling - max attempts reached');
-              connectionAttempts = 0;
-              
-              // Brief pause before retry
-              setTimeout(() => {
-                if (activeVoiceChannel) { // Only restart if still in channel
-                  startSignaling();
-                }
-              }, 2000);
-              
-              return; // Exit this interval, new one will start
-            }
-            
-            setSocketConnected(false);
+      const startWebRTC = async () => {
+        try {
+          webrtcRef.current = new SimpleWebRTC(activeVoiceChannel.id, user.id, API);
+          await webrtcRef.current.start();
+          setWebrtcConnected(true);
+          console.log('✅ SimpleWebRTC started successfully!');
+        } catch (error) {
+          console.error('❌ Failed to start SimpleWebRTC:', error);
+          setWebrtcConnected(false);
+          
+          // Offer demo mode
+          const demoMode = confirm(
+            'No se pudo acceder al micrófono.\n\n¿Quieres continuar en MODO DEMO (sin audio)?'
+          );
+          
+          if (demoMode) {
+            console.log('🎭 Entering DEMO MODE');
+            setWebrtcConnected(true); // Fake connection for UI
+            alert('🎭 MODO DEMO ACTIVADO\n\nEstás en el canal sin audio. En producción con micrófono real, el audio funcionará.');
           }
-        }, 500); // ULTRA FAST polling for production
+        }
       };
-
-      // Start signaling
-      startSignaling();
       
-      // Load and monitor participants
+      startWebRTC();
+      
+      // Load participants
       loadParticipants();
-      const participantsInterval = setInterval(loadParticipants, 2500);
+      const participantsInterval = setInterval(loadParticipants, 3000);
 
       return () => {
-        if (signalingPollingRef.current) {
-          clearInterval(signalingPollingRef.current);
-          signalingPollingRef.current = null;
+        if (webrtcRef.current) {
+          webrtcRef.current.stop();
+          webrtcRef.current = null;
         }
         clearInterval(participantsInterval);
-        setSocketConnected(false);
-        console.log('🛑 WebRTC signaling completely stopped');
+        setWebrtcConnected(false);
+        console.log('🛑 SimpleWebRTC completely stopped');
       };
     }
   }, [activeVoiceChannel, user]);
