@@ -41,6 +41,11 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
       });
       console.log('✅ Message sent successfully:', response.data);
       setMessageText('');
+      
+      // Trigger immediate refresh
+      if (onMessageSent) {
+        onMessageSent();
+      }
     } catch (err) {
       console.error('❌ Error sending message:', err);
       console.error('Error details:', err.response?.data);
