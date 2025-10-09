@@ -148,16 +148,14 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     try {
       console.log('🎤 Joining channel:', channel.name);
       
-      // Get microphone
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
-
+      // Get high-quality microphone stream
+      const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
       localStreamRef.current = stream;
+      
+      console.log('🎧 Audio stream acquired:', {
+        sampleRate: stream.getAudioTracks()[0].getSettings().sampleRate,
+        channelCount: stream.getAudioTracks()[0].getSettings().channelCount
+      });
       
       // Join on server
       await axios.post(`${API}/voice-channels/${channel.id}/join?user_id=${user.id}`);
@@ -165,11 +163,42 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
       setActiveVoiceChannel(channel);
       onRefresh();
       
-      console.log('✅ Joined channel');
+      // Start connecting to existing participants
+      setTimeout(() => {
+        initializePeerConnections();
+      }, 1000);
+      
+      console.log('✅ Joined channel successfully');
       
     } catch (err) {
       console.error('❌ Error joining channel:', err);
-      alert('Error al unirse al canal. Verifica los permisos del micrófono.');
+      if (err.name === 'NotAllowedError') {
+        alert('Permiso de micrófono denegado. Por favor permite el acceso y recarga la página.');
+      } else if (err.name === 'NotFoundError') {
+        alert('No se encontró micrófono. Verifica que tienes uno conectado.');
+      } else {
+        alert('Error al unirse al canal. Verifica los permisos del micrófono.');
+      }
+    }
+  };
+
+  const initializePeerConnections = async () => {
+    if (!activeVoiceChannel) return;
+    
+    try {
+      // Load current participants and create offers for each
+      await loadParticipants();
+      
+      const otherParticipants = participants.filter(p => p.id !== user.id);
+      
+      for (const participant of otherParticipants) {
+        if (!peerConnectionsRef.current[participant.id]) {
+          console.log('🤝 Creating offer for participant:', participant.username);
+          await createOfferForUser(participant.id);
+        }
+      }
+    } catch (err) {
+      console.error('Error initializing peer connections:', err);
     }
   };
 
