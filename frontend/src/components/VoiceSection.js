@@ -238,22 +238,40 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
   };
 
   const initializePeerConnections = async () => {
-    if (!activeVoiceChannel) return;
+    if (!activeVoiceChannel || !localStreamRef.current) {
+      console.log('⚠️ Cannot initialize peer connections: missing channel or local stream');
+      return;
+    }
+    
+    console.log('🔄 Initializing peer connections for channel:', activeVoiceChannel.id);
     
     try {
-      // Load current participants and create offers for each
+      // Load current participants
       await loadParticipants();
       
-      const otherParticipants = participants.filter(p => p.id !== user.id);
-      
-      for (const participant of otherParticipants) {
-        if (!peerConnectionsRef.current[participant.id]) {
-          console.log('🤝 Creating offer for participant:', participant.username);
-          await createOfferForUser(participant.id);
+      // Wait for participants to be loaded
+      setTimeout(async () => {
+        const currentParticipants = await axios.get(`${API}/voice-channels/${activeVoiceChannel.id}/participants`);
+        const otherParticipants = currentParticipants.data.filter(p => p.id !== user.id);
+        
+        console.log(`👥 Found ${otherParticipants.length} other participants to connect to:`, 
+          otherParticipants.map(p => p.username));
+        
+        for (const participant of otherParticipants) {
+          if (!peerConnectionsRef.current[participant.id]) {
+            console.log('🤝 Initiating connection with:', participant.username);
+            // Add delay between connections to avoid overwhelming
+            setTimeout(() => {
+              createOfferForUser(participant.id);
+            }, Math.random() * 1000);
+          } else {
+            console.log('✅ Connection already exists with:', participant.username);
+          }
         }
-      }
+      }, 1000);
+      
     } catch (err) {
-      console.error('Error initializing peer connections:', err);
+      console.error('❌ Error initializing peer connections:', err);
     }
   };
 
