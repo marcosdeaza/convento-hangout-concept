@@ -81,6 +81,29 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
   };
 
   const uploadAudio = async (audioBlob) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'audio.webm');
+
+      console.log('📤 Uploading audio file...');
+      const uploadResponse = await axios.post(
+        `${API}/upload/${user.id}/audio`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+
+      console.log('✅ Audio uploaded successfully:', uploadResponse.data);
+      await sendMessage('Mensaje de voz', 'audio', uploadResponse.data.file_url);
+    } catch (err) {
+      console.error('❌ Error uploading audio:', err);
+      alert('Error al subir el audio');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const uploadAudio = async (audioBlob) => {
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.webm');
     
