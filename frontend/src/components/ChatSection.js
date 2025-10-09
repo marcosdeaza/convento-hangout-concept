@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useDropzone } from 'react-dropzone';
+import { ChatIcon, MicIcon, PaperclipIcon, SendIcon, FileIcon } from '@/components/Icons';
 import './ChatSection.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -159,7 +160,7 @@ function ChatSection({ user, messages, socket, onRefresh }) {
       {/* Header */}
       <div className="section-header glass">
         <h2 className="section-title">
-          <span className="section-icon">💬</span>
+          <span className="section-icon"><ChatIcon size={28} /></span>
           Chat General
         </h2>
         <span className="online-count">{messages.length} mensajes</span>
@@ -175,7 +176,7 @@ function ChatSection({ user, messages, socket, onRefresh }) {
             exit={{ opacity: 0 }}
           >
             <div className="drop-content">
-              <span className="drop-icon">📁</span>
+              <FileIcon size={80} color="white" />
               <p>Suelta el archivo aquí</p>
             </div>
           </motion.div>
@@ -200,8 +201,9 @@ function ChatSection({ user, messages, socket, onRefresh }) {
             onClick={() => document.getElementById('file-input').click()}
             disabled={sending}
             data-testid="attach-file-button"
+            title="Adjuntar archivo"
           >
-            📎
+            <PaperclipIcon size={20} />
           </button>
           <input
             id="file-input"
@@ -223,15 +225,16 @@ function ChatSection({ user, messages, socket, onRefresh }) {
             whileTap={{ scale: 0.9 }}
             disabled={sending}
             data-testid="voice-record-button"
+            title="Mantén presionado para grabar"
           >
-            {recording ? '⏹️' : '🎤'}
+            <MicIcon size={20} />
           </motion.button>
 
           <input
             type="text"
             value={messageText}
             onChange={(e) => setMessageText(e.target.value)}
-            placeholder="Escribe algo bonito... 💬"
+            placeholder="Escribe algo bonito..."
             className="message-input"
             disabled={sending}
             data-testid="message-input"
@@ -244,8 +247,9 @@ function ChatSection({ user, messages, socket, onRefresh }) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             data-testid="send-message-button"
+            title="Enviar mensaje"
           >
-            {sending ? '⏳' : '🚀'}
+            <SendIcon size={20} />
           </motion.button>
         </form>
       </div>
@@ -286,7 +290,7 @@ function Message({ message }) {
         return (
           <div className="message-file">
             <a href={`${BACKEND_URL}${message.file_url}`} target="_blank" rel="noopener noreferrer">
-              📄 {message.content}
+              <FileIcon size={16} /> {message.content}
             </a>
           </div>
         );
