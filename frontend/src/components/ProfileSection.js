@@ -225,19 +225,31 @@ function ProfileSection({ user, onUpdate }) {
           )}
           <motion.button
             className="edit-banner-btn"
-            onClick={() => document.getElementById('banner-input').click()}
+            onClick={() => {
+              console.log('🖼️ Banner button clicked');
+              const input = document.getElementById('banner-input');
+              if (input) {
+                input.click();
+              } else {
+                console.error('❌ Banner input not found');
+              }
+            }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             data-testid="edit-banner-button"
+            title="Cambiar banner"
           >
             <CameraIcon size={18} />
           </motion.button>
           <input
             id="banner-input"
             type="file"
-            accept="image/*"
-            style={{ display: 'none' }}
-            onChange={onSelectBanner}
+            accept="image/*, .gif, .webp"
+            style={{ display: 'none', position: 'absolute', left: '-9999px' }}
+            onChange={(e) => {
+              console.log('🖼️ Banner file selected:', e.target.files[0]);
+              onSelectBanner(e);
+            }}
           />
         </div>
 
