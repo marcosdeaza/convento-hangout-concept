@@ -275,6 +275,32 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
           </motion.button>
         </form>
       </div>
+
+      {/* Audio Recorder Overlay */}
+      <AnimatePresence>
+        {showAudioRecorder && (
+          <motion.div
+            className="audio-recorder-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleAudioCancel}
+          >
+            <motion.div
+              className="audio-recorder-container"
+              initial={{ scale: 0.8, y: 50 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.8, y: 50 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <AudioRecorder
+                onSend={handleAudioSend}
+                onCancel={handleAudioCancel}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
