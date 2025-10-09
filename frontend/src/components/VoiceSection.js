@@ -570,19 +570,41 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
       console.error('❌ No local stream available when creating peer connection');
     }
 
-    // Handle ICE candidates - FIXED
-    pc.onicecandidate = (event) => {
+    // Handle ICE candidates - AGGRESSIVE sending
+    pc.onicecandidate = async (event) => {
       if (event.candidate && activeVoiceChannel) {
-        console.log('🧊 Sending ICE candidate to:', remoteUserId);
-        sendSignal(remoteUserId, 'ice-candidate', {
-          candidate: {
-            candidate: event.candidate.candidate,
-            sdpMLineIndex: event.candidate.sdpMLineIndex,
-            sdpMid: event.candidate.sdpMid
-          }
-        });
+        console.log('🧊 SENDING ICE candidate to:', remoteUserId);
+        
+        try {
+          await sendSignal(remoteUserId, 'ice-candidate', {
+            candidate: {
+              candidate: event.candidate.candidate,
+              sdpMLineIndex: event.candidate.sdpMLineIndex,
+              sdpMid: event.candidate.sdpMid,
+              usernameFragment: event.candidate.usernameFragment
+            }
+          });
+          console.log('✅ ICE candidate sent successfully');
+        } catch (err) {
+          console.error('❌ Failed to send ICE candidate:', err);
+          // Retry once after delay
+          setTimeout(async () => {
+            try {
+              await sendSignal(remoteUserId, 'ice-candidate', {
+                candidate: {
+                  candidate: event.candidate.candidate,
+                  sdpMLineIndex: event.candidate.sdpMLineIndex,
+                  sdpMid: event.candidate.sdpMid
+                }
+              });
+              console.log('✅ ICE candidate retry successful');
+            } catch (retryErr) {
+              console.error('❌ ICE candidate retry failed:', retryErr);
+            }
+          }, 1000);
+        }
       } else if (!event.candidate) {
-        console.log('🧊 ICE gathering completed for:', remoteUserId);
+        console.log('🧊 ICE gathering COMPLETED for:', remoteUserId);
       }
     };
 
