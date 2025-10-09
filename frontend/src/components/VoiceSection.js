@@ -506,7 +506,7 @@ function VoiceChannelCard({ channel, onJoin, isActive }) {
         }}
       />
       <div className="channel-icon" style={{ color: channel.aura_color }}>
-        🎧
+        <HeadphonesIcon size={48} />
       </div>
       <h3 className="channel-name" style={{ color: channel.aura_color }}>
         {channel.name}
