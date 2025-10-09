@@ -25,9 +25,26 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const handleScroll = () => {
+    if (!messagesContainerRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 50; // 50px tolerance
+    
+    setUserScrolledUp(!isAtBottom);
+  };
+
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    // Only auto-scroll if user hasn't scrolled up manually
+    if (!userScrolledUp) {
+      scrollToBottom();
+    }
+  }, [messages, userScrolledUp]);
+
+  // Reset scroll state when user sends a message
+  useEffect(() => {
+    setUserScrolledUp(false);
+  }, [messageText === '']); // When message is sent and cleared
 
   const sendMessage = async (content, type = 'text', fileUrl = null) => {
     if ((!content.trim() && !fileUrl) || sending) {
