@@ -94,7 +94,7 @@ function Sidebar({ user, activeSection, onSectionChange, onLogout, activeVoiceCh
           exit={{ opacity: 0, y: 20 }}
         >
           <div className="voice-status-header">
-            <span className="voice-icon">🎧</span>
+            <span className="voice-icon"><HeadphonesIcon size={16} /></span>
             <span className="voice-label">Conectado</span>
           </div>
           <div
