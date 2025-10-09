@@ -684,24 +684,27 @@ function ChannelBubble({ channel, isActive, onJoin, user }) {
 
       <div className="bubble-participants">
         {channel.participants && channel.participants.length > 0 ? (
-          channel.participants.slice(0, 4).map((participantId, index) => (
-            <div
-              key={participantId}
-              className="participant-avatar-mini"
-              style={{
-                zIndex: 10 - index,
-                marginLeft: index > 0 ? '-8px' : '0',
-                borderColor: channel.aura_color,
-              }}
-            >
-              <UserIcon size={16} />
-            </div>
-          ))
+          <>
+            {channel.participants.slice(0, 4).map((participantId, index) => (
+              <div
+                key={participantId}
+                className="participant-avatar-mini"
+                style={{
+                  zIndex: 10 - index,
+                  marginLeft: index > 0 ? '-8px' : '0',
+                  borderColor: channel.aura_color,
+                }}
+              >
+                <UserIcon size={16} />
+              </div>
+            ))}
+            {channel.participants.length > 4 && (
+              <span className="more-participants">+{channel.participants.length - 4}</span>
+            )}
+            <span className="participant-count">{channel.participants.length}</span>
+          </>
         ) : (
           <span className="no-participants">Sin participantes</span>
-        )}
-        {channel.participants && channel.participants.length > 4 && (
-          <span className="more-participants">+{channel.participants.length - 4}</span>
         )}
       </div>
     </motion.div>
