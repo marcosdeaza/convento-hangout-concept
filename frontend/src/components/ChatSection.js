@@ -8,7 +8,7 @@ import './ChatSection.css';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-function ChatSection({ user, messages, socket, socketConnected, onRefresh }) {
+function ChatSection({ user, messages, socket, onRefresh }) {
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
