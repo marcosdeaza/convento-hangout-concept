@@ -10,6 +10,8 @@ import json
 import time
 from datetime import datetime
 from typing import Dict, Any, Optional
+from PIL import Image
+import io
 
 class ConventoAPITester:
     def __init__(self, base_url="https://convento-social.preview.emergentagent.com/api"):
