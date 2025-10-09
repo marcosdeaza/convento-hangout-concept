@@ -96,14 +96,16 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
         }
       }, 1000);
 
-      // Load participants
+      // Load participants and refresh periodically
       loadParticipants();
+      const participantsInterval = setInterval(loadParticipants, 3000);
 
       return () => {
         if (signalingPollingRef.current) {
           console.log('🛑 Stopping WebRTC signaling polling');
           clearInterval(signalingPollingRef.current);
         }
+        clearInterval(participantsInterval);
       };
     }
   }, [activeVoiceChannel, user]);
