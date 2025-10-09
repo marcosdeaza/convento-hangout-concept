@@ -276,11 +276,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "WebRTC Microphone Access Issue"
+    - "WebRTC Environmental Limitations"
   stuck_tasks:
     - "WebRTC con REST API Polling"
   test_all: true
-  test_priority: "completed"
+  test_priority: "environmental_blocked"
 
 agent_communication:
   - agent: "main"
