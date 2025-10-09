@@ -521,6 +521,26 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     console.log(newDeafened ? '🙉 Audio silenciado' : '🔊 Audio activado');
   };
 
+  const toggleGhostMode = async () => {
+    if (!activeVoiceChannel || activeVoiceChannel.creator_id !== user.id) return;
+    
+    try {
+      const newGhostMode = !activeVoiceChannel.is_ghost_mode;
+      
+      const response = await axios.put(
+        `${API}/voice-channels/${activeVoiceChannel.id}/ghost-mode?is_ghost=${newGhostMode}`
+      );
+      
+      setActiveVoiceChannel(response.data);
+      onRefresh();
+      
+      console.log(`🔄 Ghost mode ${newGhostMode ? 'enabled' : 'disabled'} for channel:`, activeVoiceChannel.name);
+    } catch (err) {
+      console.error('Error toggling ghost mode:', err);
+      alert('Error al cambiar modo fantasma');
+    }
+  };
+
   const toggleScreenShare = async () => {
     if (isScreenSharing) {
       // Stop sharing
