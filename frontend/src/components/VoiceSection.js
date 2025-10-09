@@ -222,40 +222,65 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     try {
       console.log('🎤 Joining voice channel:', channel.name);
       
-      // STEP 1: Get microphone permission with fallback handling
-      console.log('🎧 Requesting microphone access...');
+      // STEP 1: FORCE microphone access with aggressive fallbacks
+      console.log('🎧 FORCING microphone access...');
       
       let stream;
-      try {
-        // Try with selected device first
-        const basicConstraints = {
+      const attempts = [
+        // Attempt 1: High quality with device
+        {
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
+            sampleRate: 48000,
+            channelCount: 2,
             ...(selectedInputDevice && { deviceId: { exact: selectedInputDevice } })
           }
-        };
-        
-        stream = await navigator.mediaDevices.getUserMedia(basicConstraints);
-      } catch (firstError) {
-        console.warn('First attempt failed, trying with default device:', firstError.name);
-        
-        // Fallback: try with default device
+        },
+        // Attempt 2: Default device high quality
+        {
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 48000
+          }
+        },
+        // Attempt 3: Basic high quality
+        {
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        },
+        // Attempt 4: Minimal constraints
+        { audio: true },
+        // Attempt 5: Force any audio device
+        { audio: { deviceId: undefined } }
+      ];
+
+      let lastError;
+      for (let i = 0; i < attempts.length; i++) {
         try {
-          stream = await navigator.mediaDevices.getUserMedia({ 
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true
-            }
-          });
-        } catch (secondError) {
-          console.warn('Second attempt failed, trying basic audio:', secondError.name);
+          console.log(`🎧 Microphone attempt ${i + 1}/${attempts.length}`);
+          stream = await navigator.mediaDevices.getUserMedia(attempts[i]);
+          console.log(`✅ Microphone success on attempt ${i + 1}`);
+          break;
+        } catch (error) {
+          console.warn(`❌ Attempt ${i + 1} failed:`, error.name);
+          lastError = error;
           
-          // Final fallback: basic audio only
-          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          // Wait between attempts
+          if (i < attempts.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
         }
+      }
+
+      if (!stream) {
+        throw lastError || new Error('All microphone attempts failed');
       }
       localStreamRef.current = stream;
       
