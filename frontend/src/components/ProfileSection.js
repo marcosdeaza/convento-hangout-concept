@@ -287,7 +287,7 @@ function ProfileSection({ user, onUpdate }) {
                   whileTap={{ scale: 0.9 }}
                   data-testid={`aura-color-${color}`}
                 >
-                  {auraColor === color && '✓'}
+                  {auraColor === color && <CheckIcon size={24} />}
                 </motion.button>
               ))}
             </div>
