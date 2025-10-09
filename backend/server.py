@@ -523,7 +523,7 @@ async def get_channel_participants(channel_id: str):
 app.include_router(api_router)
 
 app.add_middleware(
-    CORSMiddleware,
+    CORsMiddleware,
     allow_credentials=True,
     allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
     allow_methods=["*"],
@@ -533,3 +533,6 @@ app.add_middleware(
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+# Export socket_app instead of app for Socket.IO support
+app = socket_app
