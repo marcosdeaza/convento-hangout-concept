@@ -41,6 +41,7 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
   const peerConnectionsRef = useRef({});
   const remoteStreamsRef = useRef({});
   const socketRef = useRef(null);
+  const signalingPollingRef = useRef(null);
   const [participants, setParticipants] = useState([]);
   const [socketConnected, setSocketConnected] = useState(false);
 
