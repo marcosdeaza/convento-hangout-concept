@@ -674,62 +674,112 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
 
   const toggleScreenShare = async () => {
     if (isScreenSharing) {
-      // Stop sharing
+      // Stop screen sharing
+      console.log('🛑 Stopping screen share');
+      
       if (screenStream) {
         screenStream.getTracks().forEach(track => {
           track.stop();
-          console.log('🖥️ Stopped screen sharing');
+          console.log('🖥️ Stopped screen track');
         });
         
-        // Remove video tracks from peer connections
-        Object.values(peerConnectionsRef.current).forEach(pc => {
+        // Remove video tracks from all peer connections
+        Object.entries(peerConnectionsRef.current).forEach(([userId, pc]) => {
           const videoSenders = pc.getSenders().filter(s => s.track?.kind === 'video');
-          videoSenders.forEach(sender => {
-            pc.removeTrack(sender);
+          videoSenders.forEach(async (sender) => {
+            try {
+              await sender.replaceTrack(null);
+              console.log(`✅ Removed video track for user ${userId}`);
+            } catch (err) {
+              console.error(`❌ Error removing video track for user ${userId}:`, err);
+            }
           });
         });
         
         setScreenStream(null);
         setIsScreenSharing(false);
-        setRemoteScreens({});
+        console.log('✅ Screen sharing stopped');
       }
     } else {
-      // Start sharing
+      // Start screen sharing
       try {
+        console.log('🖥️ Starting screen share...');
+        
         const stream = await navigator.mediaDevices.getDisplayMedia({
           video: { 
             cursor: 'always',
-            mediaSource: 'screen',
-            width: { max: 1920 },
-            height: { max: 1080 },
-            frameRate: { max: 30 }
+            width: { ideal: 1920, max: 1920 },
+            height: { ideal: 1080, max: 1080 },
+            frameRate: { ideal: 15, max: 30 }
           },
-          audio: false,
+          audio: true, // Include system audio if available
         });
+        
+        console.log('✅ Screen capture stream acquired');
         
         setScreenStream(stream);
         setIsScreenSharing(true);
-        console.log('🖥️ Started screen sharing');
 
-        // Add to existing peer connections
+        // Add video track to all existing peer connections
         const videoTrack = stream.getVideoTracks()[0];
-        Object.values(peerConnectionsRef.current).forEach(pc => {
-          const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-          if (sender) {
-            sender.replaceTrack(videoTrack).catch(e => console.error('Error replacing video track:', e));
-          } else {
-            pc.addTrack(videoTrack, stream);
+        const audioTrack = stream.getAudioTracks()[0]; // System audio if available
+        
+        Object.entries(peerConnectionsRef.current).forEach(([userId, pc]) => {
+          try {
+            // Add or replace video track
+            const videoSender = pc.getSenders().find(s => s.track?.kind === 'video');
+            if (videoSender) {
+              videoSender.replaceTrack(videoTrack);
+              console.log(`✅ Replaced video track for user ${userId}`);
+            } else {
+              pc.addTrack(videoTrack, stream);
+              console.log(`✅ Added video track for user ${userId}`);
+            }
+            
+            // Add system audio if available
+            if (audioTrack) {
+              const audioSender = pc.getSenders().find(s => 
+                s.track?.kind === 'audio' && s.track?.label?.includes('system')
+              );
+              if (!audioSender) {
+                pc.addTrack(audioTrack, stream);
+                console.log(`✅ Added system audio track for user ${userId}`);
+              }
+            }
+          } catch (err) {
+            console.error(`❌ Error adding video track for user ${userId}:`, err);
           }
         });
 
-        // Handle screen share ending
+        // Handle when user stops sharing from browser UI
         videoTrack.onended = () => {
-          console.log('🖥️ Screen share ended by system');
-          toggleScreenShare();
+          console.log('🖥️ Screen share ended by user');
+          setScreenStream(null);
+          setIsScreenSharing(false);
+          
+          // Clean up video tracks
+          Object.values(peerConnectionsRef.current).forEach(pc => {
+            const videoSenders = pc.getSenders().filter(s => s.track?.kind === 'video');
+            videoSenders.forEach(sender => {
+              sender.replaceTrack(null).catch(console.error);
+            });
+          });
         };
+        
+        console.log('🎉 Screen sharing started successfully');
+        
       } catch (err) {
-        console.error('Error sharing screen:', err);
-        alert('Error al compartir pantalla');
+        console.error('❌ Error starting screen share:', err);
+        
+        if (err.name === 'NotAllowedError') {
+          alert('Permiso para compartir pantalla denegado. Por favor permite el acceso.');
+        } else if (err.name === 'NotSupportedError') {
+          alert('Tu navegador no soporta compartir pantalla.');
+        } else {
+          alert('Error al compartir pantalla: ' + err.message);
+        }
+        
+        setIsScreenSharing(false);
       }
     }
   };
