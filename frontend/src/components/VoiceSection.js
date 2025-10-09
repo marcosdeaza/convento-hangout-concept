@@ -645,23 +645,42 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
         return;
       }
       
+      // Ensure we have local stream
+      if (!localStreamRef.current) {
+        console.error('❌ No local stream available for offer creation');
+        return;
+      }
+      
       const pc = createPeerConnection(remoteUserId);
       
       const offer = await pc.createOffer({
         offerToReceiveAudio: true,
-        offerToReceiveVideo: true,
-        iceRestart: false
+        offerToReceiveVideo: true
       });
       
       await pc.setLocalDescription(offer);
       console.log('✅ Local description set for offer to:', remoteUserId);
       
       console.log('📤 Sending offer to:', remoteUserId);
-      await sendSignal(remoteUserId, 'offer', {
-        offer: offer
-      });
       
-      console.log('✅ Offer sent successfully to:', remoteUserId);
+      try {
+        await sendSignal(remoteUserId, 'offer', {
+          offer: offer
+        });
+        console.log('✅ Offer sent successfully to:', remoteUserId);
+      } catch (signalErr) {
+        console.error('❌ Failed to send offer signal:', signalErr);
+        // Retry once after a delay
+        setTimeout(async () => {
+          try {
+            await sendSignal(remoteUserId, 'offer', { offer: offer });
+            console.log('✅ Offer retry successful to:', remoteUserId);
+          } catch (retryErr) {
+            console.error('❌ Offer retry also failed:', retryErr);
+          }
+        }, 2000);
+      }
+      
     } catch (err) {
       console.error('❌ Error creating offer for', remoteUserId, ':', err);
       // Clean up failed connection
