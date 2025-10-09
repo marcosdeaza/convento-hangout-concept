@@ -206,9 +206,20 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     if (!activeVoiceChannel) return;
 
     try {
-      // Stop all tracks
+      console.log('👋 Leaving channel:', activeVoiceChannel.name);
+
+      // Stop signaling polling
+      if (signalingPollingRef.current) {
+        clearInterval(signalingPollingRef.current);
+        signalingPollingRef.current = null;
+      }
+
+      // Stop all local tracks
       if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current.getTracks().forEach(track => {
+          track.stop();
+          console.log('🔇 Stopped local track:', track.kind);
+        });
         localStreamRef.current = null;
       }
 
@@ -219,8 +230,13 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
       }
 
       // Close all peer connections
-      Object.values(peerConnectionsRef.current).forEach(pc => pc.close());
+      Object.keys(peerConnectionsRef.current).forEach(userId => {
+        const pc = peerConnectionsRef.current[userId];
+        pc.close();
+        console.log('🔌 Closed connection with:', userId);
+      });
       peerConnectionsRef.current = {};
+      remoteStreamsRef.current = {};
 
       // Leave on server
       await axios.post(`${API}/voice-channels/${activeVoiceChannel.id}/leave?user_id=${user.id}`);
@@ -229,7 +245,10 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
       setIsMuted(false);
       setIsDeafened(false);
       setRemoteScreens({});
+      setParticipants([]);
       onRefresh();
+      
+      console.log('✅ Left channel successfully');
     } catch (err) {
       console.error('Error leaving channel:', err);
     }
