@@ -15,7 +15,7 @@ const AURA_COLORS = [
   '#F59E0B', // Naranja
   '#EF4444', // Rojo
   '#3B82F6', // Azul
-  '#8B5CF6', // Morado
+  '#A78BFA', // Morado claro
 ];
 
 function VoiceSection({
