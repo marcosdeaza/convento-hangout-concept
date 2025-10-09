@@ -246,13 +246,19 @@ function ProfileSection({ user, onUpdate }) {
           <div
             className="profile-avatar aura-glow"
             style={{
-              backgroundImage: user.avatar_url
-                ? `url(${BACKEND_URL}${user.avatar_url})`
-                : 'linear-gradient(135deg, #8B5CF6, #06B6D4)',
               '--aura-color': auraColor,
               boxShadow: `0 0 30px ${auraColor}60`,
             }}
           >
+            {user.avatar_url ? (
+              <img 
+                src={`${BACKEND_URL}${user.avatar_url}`} 
+                alt="Avatar" 
+                className="avatar-image"
+              />
+            ) : (
+              <div className="avatar-gradient" />
+            )}
             <motion.button
               className="edit-avatar-btn"
               onClick={() => document.getElementById('avatar-input').click()}
