@@ -101,3 +101,87 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "El usuario quiere que Convento funcione 100% sin bugs. Necesita completar todas las funcionalidades faltantes, especialmente WebRTC para canales de voz que actualmente no funciona debido a problemas de signaling con Socket.IO en Kubernetes/Ingress."
+
+backend:
+  - task: "WebRTC REST API Signaling"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Endpoints /webrtc/signal y /webrtc/signals/{channel_id}/{user_id} ya implementados correctamente"
+
+  - task: "Voice Channels CRUD Operations"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Crear, listar, unirse, salir de canales funciona correctamente"
+
+frontend:
+  - task: "WebRTC con REST API Polling"
+    implemented: false
+    working: false
+    file: "/app/frontend/src/components/VoiceSection.js"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Actualmente usa Socket.IO que falla en Kubernetes. Necesita cambiar a REST API polling"
+
+  - task: "Audio Recording en Chat"
+    implemented: false
+    working: false
+    file: "/app/frontend/src/components/AudioRecorder.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Componente existe pero no está integrado completamente"
+
+  - task: "Profile Image Cropper"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/ProfileSection.js"
+    stuck_count: 1
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "user"
+        comment: "Usuario reporta que el cropper de imágenes está 'shitty' y necesita mejoras"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "WebRTC con REST API Polling"
+    - "Audio Recording en Chat"
+  stuck_tasks:
+    - "WebRTC con REST API Polling"
+    - "Profile Image Cropper"
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Iniciando implementación completa de Convento. Prioridad: reemplazar Socket.IO WebRTC signaling con REST API polling para solucionar problemas de conectividad en Kubernetes."
