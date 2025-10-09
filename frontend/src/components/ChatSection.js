@@ -390,7 +390,10 @@ function Message({ message, onShowProfile }) {
             : 'linear-gradient(135deg, #8B5CF6, #06B6D4)',
           '--aura-color': message.aura_color,
           boxShadow: `0 0 15px ${message.aura_color}40`,
+          cursor: 'pointer'
         }}
+        onClick={handleUserClick}
+        title={`Ver perfil de ${message.username}`}
       />
       <div className="message-content">
         <div className="message-header">
