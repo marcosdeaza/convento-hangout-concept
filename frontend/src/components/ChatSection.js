@@ -26,9 +26,11 @@ function ChatSection({ user, messages, socket, socketConnected, onRefresh }) {
 
   const sendMessage = async (content, type = 'text', fileUrl = null) => {
     if ((!content.trim() && !fileUrl) || sending) {
-      console.log('Cannot send: empty or already sending');\n      return;\n    }
+      console.log('Cannot send: empty or already sending');
+      return;
+    }
 
-    console.log('\ud83d\ude80 Sending message:', { content, type, fileUrl, userId: user.id });
+    console.log('🚀 Sending message:', { content, type, fileUrl, userId: user.id });
     setSending(true);
     try {
       const response = await axios.post(`${API}/messages`, {
@@ -37,12 +39,16 @@ function ChatSection({ user, messages, socket, socketConnected, onRefresh }) {
         message_type: type,
         file_url: fileUrl,
       });
-      console.log('\u2705 Message sent successfully:', response.data);
+      console.log('✅ Message sent successfully:', response.data);
       setMessageText('');
     } catch (err) {
-      console.error('\u274c Error sending message:', err);
+      console.error('❌ Error sending message:', err);
       console.error('Error details:', err.response?.data);
-      alert(`Error al enviar mensaje: ${err.response?.data?.detail || err.message}`);\n    } finally {\n      setSending(false);\n    }\n  };
+      alert(`Error al enviar mensaje: ${err.response?.data?.detail || err.message}`);
+    } finally {
+      setSending(false);
+    }
+  };
 
   const handleSendMessage = (e) => {
     e.preventDefault();
