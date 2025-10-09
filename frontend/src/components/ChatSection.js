@@ -17,7 +17,9 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
   const [uploading, setUploading] = useState(false);
   const [selectedUserProfile, setSelectedUserProfile] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [userScrolledUp, setUserScrolledUp] = useState(false);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
