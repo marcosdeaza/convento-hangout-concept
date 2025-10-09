@@ -1,6 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { 
+  HeadphonesIcon, 
+  MicIcon, 
+  MicOffIcon, 
+  VolumeIcon, 
+  VolumeOffIcon, 
+  ScreenShareIcon, 
+  GhostIcon, 
+  EyeIcon, 
+  XIcon,
+  PlusIcon,
+  CheckIcon 
+} from '@/components/Icons';
 import './VoiceSection.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
