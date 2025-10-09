@@ -589,7 +589,7 @@ function CreateChannelModal({
                 whileTap={{ scale: 0.9 }}
                 data-testid={`color-${color}`}
               >
-                {selectedColor === color && '✓'}
+                {selectedColor === color && <CheckIcon size={24} />}
               </motion.button>
             ))}
           </div>
