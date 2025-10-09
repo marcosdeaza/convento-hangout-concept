@@ -77,12 +77,12 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     if (activeVoiceChannel && user) {
       console.log('🔌 Starting WebSocket signaling for channel:', activeVoiceChannel.id);
       
-      // Create Socket.IO connection with direct path
+      // Try Socket.IO first, fallback to polling if fails
       const socket = io(BACKEND_URL, {
         path: '/socket.io',
-        transports: ['websocket', 'polling'],
-        upgrade: true,
-        rememberUpgrade: true
+        transports: ['polling'], // Force polling for Kubernetes compatibility
+        forceNew: true,
+        timeout: 5000
       });
       
       socketRef.current = socket;
