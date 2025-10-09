@@ -1,19 +1,39 @@
-import React, { useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
-import { CameraIcon, CheckIcon } from '@/components/Icons';
+import { CameraIcon, CheckIcon, EyeIcon, EyeOffIcon, CopyIcon } from '@/components/Icons';
 import './ProfileSection.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+
+// Nuevo icono para Eye Off y Copy
+const EyeOffIcon = ({ size = 24, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+    <line x1="1" y1="1" x2="23" y2="23"/>
+  </svg>
+);
+
+const CopyIcon = ({ size = 24, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+  </svg>
+);
 
 function ProfileSection({ user, onUpdate }) {
   const [username, setUsername] = useState(user.username);
   const [description, setDescription] = useState(user.description);
   const [auraColor, setAuraColor] = useState(user.aura_color);
   const [saving, setSaving] = useState(false);
+  
+  // Code visibility
+  const [showCodeOptions, setShowCodeOptions] = useState(false);
+  const [codeVisible, setCodeVisible] = useState(false);
+  const [copied, setCopied] = useState(false);
   
   // Avatar cropper
   const [showAvatarCropper, setShowAvatarCropper] = useState(false);
@@ -56,6 +76,15 @@ function ProfileSection({ user, onUpdate }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(user.access_code);
+    setCopied(true);
+    setTimeout(() => {
+      setCopied(false);
+      setShowCodeOptions(false);
+    }, 2000);
   };
 
   const onSelectAvatar = (e) => {
@@ -244,7 +273,51 @@ function ProfileSection({ user, onUpdate }) {
         {/* Profile Info */}
         <div className="profile-info">
           <h2 className="profile-name">{user.username}</h2>
-          <p className="profile-code">Código: {user.access_code}</p>
+          
+          {/* Access Code with censorship */}
+          <div className="profile-code-container">
+            <p className="profile-code-label">Código de acceso:</p>
+            <div className="profile-code-wrapper">
+              <motion.div
+                className="profile-code"
+                onClick={() => setShowCodeOptions(!showCodeOptions)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {codeVisible ? user.access_code : '••••••••••••••••'}
+              </motion.div>
+              
+              <AnimatePresence>
+                {showCodeOptions && (
+                  <motion.div
+                    className="code-options"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <motion.button
+                      className="code-option-btn"
+                      onClick={() => setCodeVisible(!codeVisible)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {codeVisible ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
+                      {codeVisible ? 'Ocultar' : 'Ver'}
+                    </motion.button>
+                    <motion.button
+                      className="code-option-btn"
+                      onClick={handleCopyCode}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <CopyIcon size={16} />
+                      {copied ? '¡Copiado!' : 'Copiar'}
+                    </motion.button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
         </div>
 
         {/* Edit Form */}
