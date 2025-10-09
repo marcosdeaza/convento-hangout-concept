@@ -280,9 +280,6 @@ function Message({ message }) {
         return (
           <div className="message-image">
             <img src={`${BACKEND_URL}${message.file_url}`} alt="Imagen" />
-            {message.content !== 'Archivo adjunto' && (
-              <p className="image-caption">{message.content}</p>
-            )}
           </div>
         );
       
