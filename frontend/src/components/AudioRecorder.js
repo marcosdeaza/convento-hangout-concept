@@ -41,13 +41,18 @@ function AudioRecorder({ onSend, onCancel }) {
 
   const startRecording = async () => {
     try {
+      console.log('🎤 AudioRecorder: Starting recording...');
+      
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
+          sampleRate: 44100
         } 
       });
+      
+      console.log('✅ AudioRecorder: Got media stream');
       
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
