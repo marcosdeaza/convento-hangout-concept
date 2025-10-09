@@ -443,22 +443,23 @@ class ConventoAPITester:
             self.log_test("File Upload Avatar", False, f"Error creating test image: {e}")
             return False
 
-    def test_delete_voice_channel(self):
-        """Test deleting a voice channel"""
+    def test_auto_delete_empty_channel(self):
+        """Test that empty channels are auto-deleted when last user leaves"""
         if not self.test_voice_channel:
-            self.log_test("Delete Voice Channel", False, "No test channel available")
+            self.log_test("Auto Delete Empty Channel", False, "No test channel available")
             return False
             
+        # Try to get the channel - should be 404 since it was auto-deleted when user left
         success, data, status = self.make_request(
-            'DELETE', 
-            f"voice-channels/{self.test_voice_channel['id']}"
+            'GET', 
+            f"voice-channels/{self.test_voice_channel['id']}/participants"
         )
         
-        if success:
-            self.log_test("Delete Voice Channel", True, "Channel deleted successfully")
+        if not success and status == 404:
+            self.log_test("Auto Delete Empty Channel", True, "Channel auto-deleted when empty (expected behavior)")
             return True
         else:
-            self.log_test("Delete Voice Channel", False, f"Status: {status}, Data: {data}")
+            self.log_test("Auto Delete Empty Channel", False, f"Channel still exists: Status {status}")
             return False
 
     def run_all_tests(self):
