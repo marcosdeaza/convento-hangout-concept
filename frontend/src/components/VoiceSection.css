@@ -201,6 +201,52 @@
   font-weight: 600;
 }
 
+/* ============= SETTINGS PANEL ============= */
+.settings-panel {
+  width: 100%;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.setting-group {
+  margin-bottom: 15px;
+}
+
+.setting-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(248, 250, 252, 0.8);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.device-select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 2px solid rgba(139, 92, 246, 0.2);
+  background: rgba(15, 15, 30, 0.8);
+  color: white;
+  font-size: 14px;
+  font-family: 'Space Grotesk', sans-serif;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.device-select:focus {
+  border-color: #8B5CF6;
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+}
+
+.device-select option {
+  background: #0F0F1E;
+  color: white;
+}
+
 /* ============= MODAL ============= */
 .modal-overlay {
   position: fixed;
