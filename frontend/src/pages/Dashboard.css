@@ -13,7 +13,7 @@
   z-index: 10;
   overflow-y: auto;
   height: 100vh;
-}
+}\n\n.socket-indicator {\n  position: fixed;\n  top: 20px;\n  right: 20px;\n  padding: 10px 20px;\n  border-radius: 12px;\n  background: rgba(239, 68, 68, 0.9);\n  backdrop-filter: blur(10px);\n  color: white;\n  font-size: 14px;\n  font-weight: 600;\n  z-index: 10000;\n  animation: pulse 2s ease-in-out infinite;\n}
 
 /* ============= RESPONSIVE ============= */
 @media (max-width: 768px) {
