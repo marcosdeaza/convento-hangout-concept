@@ -40,8 +40,9 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
   const localStreamRef = useRef(null);
   const peerConnectionsRef = useRef({});
   const remoteStreamsRef = useRef({});
-  const signalingPollingRef = useRef(null);
+  const socketRef = useRef(null);
   const [participants, setParticipants] = useState([]);
+  const [socketConnected, setSocketConnected] = useState(false);
 
   // WebRTC Configuration - Enhanced for high quality
   const rtcConfig = {
