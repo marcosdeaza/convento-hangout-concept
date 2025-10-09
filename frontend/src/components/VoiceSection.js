@@ -672,16 +672,20 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     }
   };
 
-  const handleReceiveOffer = async (data) => {
-    const { from_user, offer } = data;
+  const handleReceiveOffer = async (signal) => {
+    const { from_user, data } = signal;
+    const { offer } = data;
     
-    console.log('📨 Processing WebSocket offer from:', from_user);
+    console.log('📨 Processing offer from:', from_user);
 
     try {
       const pc = createPeerConnection(from_user);
       
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
       console.log('✅ Remote description set for offer');
+      
+      // Process any queued ICE candidates
+      await processQueuedIceCandidates(from_user);
       
       const answer = await pc.createAnswer({
         offerToReceiveAudio: true,
@@ -691,32 +695,37 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
       await pc.setLocalDescription(answer);
       console.log('✅ Local description set for answer');
 
-      console.log('📤 Sending WebSocket answer to:', from_user);
-      sendSignal(from_user, 'answer', {
+      console.log('📤 Sending answer to:', from_user);
+      await sendSignal(from_user, 'answer', {
         answer: answer
       });
       
-      console.log('✅ WebSocket answer sent successfully');
+      console.log('✅ Answer sent successfully');
     } catch (err) {
-      console.error('❌ Error handling WebSocket offer from', from_user, ':', err);
+      console.error('❌ Error handling offer from', from_user, ':', err);
     }
   };
 
-  const handleReceiveAnswer = async (data) => {
-    const { from_user, answer } = data;
+  const handleReceiveAnswer = async (signal) => {
+    const { from_user, data } = signal;
+    const { answer } = data;
     
-    console.log('📨 Processing WebSocket answer from:', from_user);
+    console.log('📨 Processing answer from:', from_user);
 
     const pc = peerConnectionsRef.current[from_user];
     if (pc && pc.signalingState === 'have-local-offer') {
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(answer));
-        console.log('✅ WebSocket answer processed successfully for:', from_user);
+        console.log('✅ Answer processed successfully for:', from_user);
+        
+        // Process any queued ICE candidates
+        await processQueuedIceCandidates(from_user);
+        
       } catch (err) {
-        console.error('❌ Error handling WebSocket answer from', from_user, ':', err);
+        console.error('❌ Error handling answer from', from_user, ':', err);
       }
     } else if (!pc) {
-      console.warn('⚠️ No peer connection found for WebSocket answer from:', from_user);
+      console.warn('⚠️ No peer connection found for answer from:', from_user);
     } else {
       console.warn('⚠️ Peer connection not in correct state for answer. State:', pc.signalingState);
     }
