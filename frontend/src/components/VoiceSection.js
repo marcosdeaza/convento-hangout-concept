@@ -188,152 +188,30 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     try {
       console.log('🎤 Joining voice channel:', channel.name);
       
-      // STEP 1: FORCE microphone access with aggressive fallbacks
-      console.log('🎧 FORCING microphone access...');
-      
-      let stream;
-      const attempts = [
-        // Attempt 1: High quality with device
-        {
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            sampleRate: 48000,
-            channelCount: 2,
-            ...(selectedInputDevice && { deviceId: { exact: selectedInputDevice } })
-          }
-        },
-        // Attempt 2: Default device high quality
-        {
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            sampleRate: 48000
-          }
-        },
-        // Attempt 3: Basic high quality
-        {
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          }
-        },
-        // Attempt 4: Minimal constraints
-        { audio: true },
-        // Attempt 5: Force any audio device
-        { audio: { deviceId: undefined } }
-      ];
-
-      let lastError;
-      for (let i = 0; i < attempts.length; i++) {
-        try {
-          console.log(`🎧 Microphone attempt ${i + 1}/${attempts.length}`);
-          stream = await navigator.mediaDevices.getUserMedia(attempts[i]);
-          console.log(`✅ Microphone success on attempt ${i + 1}`);
-          break;
-        } catch (error) {
-          console.warn(`❌ Attempt ${i + 1} failed:`, error.name);
-          lastError = error;
-          
-          // Wait between attempts
-          if (i < attempts.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-        }
-      }
-
-      if (!stream) {
-        throw lastError || new Error('All microphone attempts failed');
-      }
-      localStreamRef.current = stream;
-      
-      const audioTrack = stream.getAudioTracks()[0];
-      console.log('✅ Microphone access granted:', {
-        label: audioTrack.label,
-        enabled: audioTrack.enabled,
-        muted: audioTrack.muted,
-        settings: audioTrack.getSettings()
-      });
-      
-      // STEP 2: Join channel on server
+      // STEP 1: Join channel on server first
       console.log('🌐 Joining channel on server...');
       await axios.post(`${API}/voice-channels/${channel.id}/join?user_id=${user.id}`);
       
-      // STEP 3: Update UI state
+      // STEP 2: Update UI state immediately
       setActiveVoiceChannel(channel);
       setIsMuted(false);
       setIsDeafened(false);
       onRefresh();
       
-      console.log('✅ Successfully joined channel on server');
-      
-      // STEP 4: Initialize WebRTC connections after a delay
-      console.log('🔄 Initializing WebRTC connections...');
-      setTimeout(() => {
-        initializePeerConnections();
-      }, 1500);
-      
-      console.log('🎉 Channel join process completed!');
+      console.log('✅ Successfully joined channel - WebRTC will start via useEffect');
       
     } catch (err) {
       console.error('❌ Failed to join channel:', err);
       
-      // Clean up on error
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(track => track.stop());
-        localStreamRef.current = null;
+      let errorMessage = 'Error al unirse al canal';
+      
+      if (err.response?.status === 404) {
+        errorMessage = 'Canal no encontrado';
+      } else if (err.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
       }
       
-      let errorMessage = '';
-      let allowDemoMode = false;
-      
-      if (err.name === 'NotAllowedError') {
-        errorMessage = 'Permiso de micrófono denegado. Haz clic en "Permitir" cuando el navegador lo solicite.';
-      } else if (err.name === 'NotFoundError') {
-        errorMessage = 'No se encontró micrófono disponible.';
-        allowDemoMode = true;
-      } else if (err.name === 'OverconstrainedError') {
-        errorMessage = 'Problema con el dispositivo de audio seleccionado.';
-        // Try with default device
-        setSelectedInputDevice('');
-      } else if (err.response?.status === 404) {
-        errorMessage = 'Canal no encontrado.';
-      } else {
-        errorMessage = err.message || 'Error desconocido.';
-      }
-      
-      // Offer demo mode for testing environments
-      if (allowDemoMode) {
-        const demoMode = confirm(
-          `${errorMessage}\n\n¿Quieres unirte en MODO DEMO (sin audio)?\n\nEsto es útil para probar la interfaz cuando no hay micrófono disponible.`
-        );
-        
-        if (demoMode) {
-          console.log('🎭 Entering DEMO MODE - no audio');
-          // Join without audio for UI testing
-          try {
-            await axios.post(`${API}/voice-channels/${channel.id}/join?user_id=${user.id}`);
-            setActiveVoiceChannel(channel);
-            setIsMuted(true); // Start muted in demo mode
-            onRefresh();
-            
-            // Show demo warning
-            setTimeout(() => {
-              alert('🎭 MODO DEMO ACTIVADO\n\nEstás en el canal sin audio. Perfecto para probar la interfaz.\n\nEn producción con micrófono real, el audio funcionará correctamente.');
-            }, 1000);
-            
-            return; // Exit successfully
-          } catch (demoErr) {
-            console.error('Demo mode failed:', demoErr);
-            alert('Error en modo demo: ' + demoErr.message);
-          }
-        }
-      } else {
-        alert('Error al unirse al canal: ' + errorMessage);
-      }
+      alert(errorMessage);
     }
   };
 
