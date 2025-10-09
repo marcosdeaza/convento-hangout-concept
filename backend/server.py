@@ -32,13 +32,24 @@ db = client[os.environ['DB_NAME']]
 UPLOADS_DIR = ROOT_DIR / 'uploads'
 UPLOADS_DIR.mkdir(exist_ok=True)
 
+# Create Socket.IO server
+sio = socketio.AsyncServer(
+    cors_allowed_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    logger=True,
+    engineio_logger=True
+)
+
 # Create the main app
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
-# WebRTC signaling storage (in-memory for MVP)
+# Mount Socket.IO
+socket_app = socketio.ASGIApp(sio, app)
+
+# WebRTC signaling storage (in-memory for MVP)  
 webrtc_signals: Dict[str, List[Dict]] = {}
 active_connections: Dict[str, Dict[str, Any]] = {}
+voice_channel_rooms: Dict[str, set] = {}  # Track users in voice channels
 
 # Configure logging
 logging.basicConfig(
