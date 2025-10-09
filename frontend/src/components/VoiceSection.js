@@ -51,17 +51,24 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     ],
   };
 
-  // High-quality audio constraints (48kHz stereo)
+  // Enhanced audio constraints for high quality
   const audioConstraints = {
     audio: {
       echoCancellation: true,
       noiseSuppression: true,
       autoGainControl: true,
-      sampleRate: 48000,
-      channelCount: 2,
-      sampleSize: 16,
+      sampleRate: { ideal: 48000 },
+      channelCount: { ideal: 2 },
+      sampleSize: { ideal: 16 },
     },
   };
+
+  // Audio device states
+  const [audioInputDevices, setAudioInputDevices] = useState([]);
+  const [audioOutputDevices, setAudioOutputDevices] = useState([]);
+  const [selectedInputDevice, setSelectedInputDevice] = useState('');
+  const [selectedOutputDevice, setSelectedOutputDevice] = useState('');
+  const [showDeviceSettings, setShowDeviceSettings] = useState(false);
 
   // REST API Signaling Polling - Replace Socket.IO
   useEffect(() => {
