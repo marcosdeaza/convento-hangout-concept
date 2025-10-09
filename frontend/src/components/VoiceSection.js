@@ -861,13 +861,19 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
   };
 
   const toggleMute = () => {
-    if (localStreamRef.current) {
-      const audioTrack = localStreamRef.current.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsMuted(!audioTrack.enabled);
-        console.log(audioTrack.enabled ? '🔊 Micrófono activado' : '🔇 Micrófono silenciado');
+    if (webrtcRef.current) {
+      if (isMuted) {
+        webrtcRef.current.unmute();
+        setIsMuted(false);
+      } else {
+        webrtcRef.current.mute();
+        setIsMuted(true);
       }
+      console.log(isMuted ? '🔊 Micrófono activado' : '🔇 Micrófono silenciado');
+    } else {
+      // Fallback for demo mode
+      setIsMuted(!isMuted);
+      console.log(isMuted ? '🔊 [DEMO] Micrófono activado' : '🔇 [DEMO] Micrófono silenciado');
     }
   };
 
@@ -875,11 +881,10 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     const newDeafened = !isDeafened;
     setIsDeafened(newDeafened);
     
-    // Mute/unmute all remote audio elements
-    Object.values(remoteStreamsRef.current).forEach((audioData) => {
-      if (audioData.audioElement) {
-        audioData.audioElement.volume = newDeafened ? 0 : 1;
-      }
+    // Mute/unmute all audio elements
+    const audioElements = document.querySelectorAll('audio');
+    audioElements.forEach(audio => {
+      audio.volume = newDeafened ? 0 : 1;
     });
     
     console.log(newDeafened ? '🙉 Audio silenciado' : '🔊 Audio activado');
