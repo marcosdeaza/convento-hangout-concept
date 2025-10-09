@@ -317,6 +317,14 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* User Profile Modal */}
+      {showProfileModal && selectedUserProfile && (
+        <UserProfileModal
+          user={selectedUserProfile}
+          onClose={closeProfileModal}
+        />
+      )}
     </motion.div>
   );
 }
