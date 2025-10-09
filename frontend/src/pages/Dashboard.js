@@ -24,9 +24,10 @@ function Dashboard({ user, onLogout, onUserUpdate }) {
     console.log('🔌 Initializing Socket.IO connection...');
     console.log('Backend URL:', BACKEND_URL);
     
-    // Connect to backend with /api prefix (matches ingress rules)
-    const socketConnection = io(BACKEND_URL, {
-      path: '/api/socket.io',  // Changed to /api/socket.io to match ingress
+    // Connect to backend - Socket.IO is at root /socket.io
+    // Since backend is wrapped with socketio.ASGIApp, Socket.IO handles root path
+    const socketConnection = io(`${BACKEND_URL}/api`, {
+      path: '/socket.io',  // Socket.IO path relative to /api
       transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionDelay: 1000,
