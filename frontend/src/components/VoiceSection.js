@@ -576,14 +576,29 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
 
               {/* Participants */}
               <div className="participants-grid">
-                {activeVoiceChannel.participants?.map((participantId) => (
-                  <div key={participantId} className="participant-card">
-                    <div className="participant-avatar">
-                      <UserIcon size={32} />
+                {participants.map((participant) => (
+                  <div key={participant.id} className="participant-card">
+                    <div 
+                      className="participant-avatar"
+                      style={{ borderColor: participant.aura_color }}
+                    >
+                      {participant.avatar_url ? (
+                        <img src={participant.avatar_url} alt={participant.username} />
+                      ) : (
+                        <UserIcon size={32} />
+                      )}
                     </div>
                     <span className="participant-name">
-                      {participantId === user.id ? 'Tú' : `Usuario ${participantId.slice(0, 4)}`}
+                      {participant.id === user.id ? 'Tú' : participant.username}
                     </span>
+                    {/* Audio visualizer placeholder */}
+                    <div className="audio-indicator">
+                      <div className="audio-bars">
+                        <div className="bar" />
+                        <div className="bar" />
+                        <div className="bar" />
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
