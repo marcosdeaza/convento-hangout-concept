@@ -462,6 +462,84 @@ class ConventoAPITester:
             self.log_test("Auto Delete Empty Channel", False, f"Channel still exists: Status {status}")
             return False
 
+    def test_access_code_validation(self):
+        """Test that access codes are exactly 16 characters"""
+        success, data, status = self.make_request('POST', 'auth/register')
+        
+        if success and 'access_code' in data:
+            code = data['access_code']
+            if len(code) == 16 and code.isalnum():
+                self.log_test("Access Code Validation", True, f"Code is 16 chars: {code}")
+                return True
+            else:
+                self.log_test("Access Code Validation", False, f"Code length: {len(code)}, alphanumeric: {code.isalnum()}")
+                return False
+        else:
+            self.log_test("Access Code Validation", False, f"Registration failed: {data}")
+            return False
+
+    def test_file_retrieval(self):
+        """Test retrieving uploaded files"""
+        if not self.test_user or 'avatar_url' not in self.test_user:
+            self.log_test("File Retrieval", False, "No avatar URL available")
+            return False
+            
+        # Extract filename from avatar_url
+        avatar_url = self.test_user.get('avatar_url', '')
+        if not avatar_url.startswith('/api/files/'):
+            self.log_test("File Retrieval", False, f"Invalid avatar URL format: {avatar_url}")
+            return False
+            
+        filename = avatar_url.replace('/api/files/', '')
+        success, data, status = self.make_request('GET', f"files/{filename}")
+        
+        if success or status == 200:
+            self.log_test("File Retrieval", True, f"File retrieved successfully: {filename}")
+            return True
+        else:
+            self.log_test("File Retrieval", False, f"Status: {status}, Data: {data}")
+            return False
+
+    def test_message_decompression(self):
+        """Test that messages are properly decompressed when retrieved"""
+        # First create a message with special characters
+        if not self.test_user or 'id' not in self.test_user:
+            self.log_test("Message Decompression", False, "No test user ID available")
+            return False
+            
+        original_content = "Mensaje con caracteres especiales: áéíóú ñ 🚀 ¡Hola mundo!"
+        message_data = {
+            'user_id': self.test_user['id'],
+            'content': original_content,
+            'message_type': 'text'
+        }
+        
+        # Create the message
+        success, create_data, status = self.make_request('POST', 'messages', message_data)
+        if not success:
+            self.log_test("Message Decompression", False, f"Failed to create message: {create_data}")
+            return False
+            
+        # Retrieve messages and check if our message is properly decompressed
+        success, messages, status = self.make_request('GET', 'messages?limit=10')
+        if not success:
+            self.log_test("Message Decompression", False, f"Failed to retrieve messages: {messages}")
+            return False
+            
+        # Find our message
+        our_message = None
+        for msg in messages:
+            if msg.get('id') == create_data.get('id'):
+                our_message = msg
+                break
+                
+        if our_message and our_message.get('content') == original_content:
+            self.log_test("Message Decompression", True, "Message properly compressed/decompressed")
+            return True
+        else:
+            self.log_test("Message Decompression", False, f"Content mismatch. Expected: {original_content}, Got: {our_message.get('content') if our_message else 'Message not found'}")
+            return False
+
     def run_all_tests(self):
         """Run all backend tests"""
         print("🚀 Starting Convento Backend API Tests")
