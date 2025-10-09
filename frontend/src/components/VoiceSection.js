@@ -128,6 +128,33 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     }
   };
 
+  // Get available audio devices
+  const getAudioDevices = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices.filter(device => device.kind === 'audioinput');
+      const audioOutputs = devices.filter(device => device.kind === 'audiooutput');
+      
+      setAudioInputDevices(audioInputs);
+      setAudioOutputDevices(audioOutputs);
+      
+      // Set default devices if none selected
+      if (!selectedInputDevice && audioInputs.length > 0) {
+        setSelectedInputDevice(audioInputs[0].deviceId);
+      }
+      if (!selectedOutputDevice && audioOutputs.length > 0) {
+        setSelectedOutputDevice(audioOutputs[0].deviceId);
+      }
+    } catch (err) {
+      console.error('Error getting audio devices:', err);
+    }
+  };
+
+  // Initialize audio devices on component mount
+  useEffect(() => {
+    getAudioDevices();
+  }, []);
+
   const createChannel = async () => {
     if (!channelName.trim() || creating) return;
 
