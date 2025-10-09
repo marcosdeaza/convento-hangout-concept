@@ -329,6 +329,11 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
 }
 
 function Message({ message, onShowProfile }) {
+  const handleUserClick = () => {
+    if (onShowProfile && message.user_id) {
+      onShowProfile(message.user_id);
+    }
+  };
   const renderContent = () => {
     switch (message.message_type) {
       case 'image':
