@@ -434,6 +434,8 @@ class ConventoAPITester:
             )
             
             if success and 'file_url' in data:
+                # Store the avatar URL for later tests
+                self.test_user['avatar_url'] = data['file_url']
                 self.log_test("File Upload Avatar", True, f"Avatar uploaded: {data['file_url']}")
                 return True
             else:
