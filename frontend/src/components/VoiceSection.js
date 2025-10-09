@@ -657,18 +657,42 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
                 <div className="screen-preview">
                   <video
                     ref={(video) => {
-                      if (video && screenStream) {
+                      if (video && screenStream && video.srcObject !== screenStream) {
                         video.srcObject = screenStream;
-                        video.play();
+                        video.play().catch(e => {
+                          console.warn('Video play prevented, but this is normal for screen sharing:', e);
+                        });
                       }
                     }}
                     autoPlay
                     muted
+                    playsInline
                     className="screen-video"
                   />
                   <div className="screen-label">Tu pantalla</div>
                 </div>
               )}
+
+              {/* Remote Screen Shares */}
+              {Object.entries(remoteScreens).map(([userId, stream]) => (
+                <div key={userId} className="remote-screen-preview">
+                  <video
+                    ref={(video) => {
+                      if (video && stream && video.srcObject !== stream) {
+                        video.srcObject = stream;
+                        video.play().catch(e => {
+                          console.warn('Remote video play prevented:', e);
+                        });
+                      }
+                    }}
+                    autoPlay
+                    muted
+                    playsInline
+                    className="screen-video"
+                  />
+                  <div className="screen-label">Pantalla de {participants.find(p => p.id === userId)?.username || 'Usuario'}</div>
+                </div>
+              ))}
 
               {/* Participants */}
               <div className="participants-grid">
