@@ -286,19 +286,19 @@ function LandingPage({ onLogin }) {
           transition={{ delay: 1, duration: 0.8 }}
         >
           <FeatureCard
-            icon="💬"
+            icon={<ChatIcon size={40} />}
             title="Chat General"
             description="Comparte mensajes, fotos, GIFs y audios con tu comunidad"
             delay={1.2}
           />
           <FeatureCard
-            icon="🎧"
+            icon={<HeadphonesIcon size={40} />}
             title="Canales de Voz"
             description="Crea salas de voz dinámicas con modo fantasma"
             delay={1.4}
           />
           <FeatureCard
-            icon="✨"
+            icon={<SparklesIcon size={40} />}
             title="Perfil Único"
             description="Personaliza tu avatar, banner y aura de color"
             delay={1.6}
