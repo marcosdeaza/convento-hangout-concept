@@ -1,0 +1,339 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
+import { useDropzone } from 'react-dropzone';
+import './ChatSection.css';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
+
+function ChatSection({ user, messages, socket, onRefresh }) {
+  const [messageText, setMessageText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const messagesEndRef = useRef(null);
+  const audioChunksRef = useRef([]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const sendMessage = async (content, type = 'text', fileUrl = null) => {
+    if ((!content.trim() && !fileUrl) || sending) return;
+
+    setSending(true);
+    try {
+      await axios.post(`${API}/messages`, {
+        user_id: user.id,
+        content: content || 'Archivo adjunto',
+        message_type: type,
+        file_url: fileUrl,
+      });
+      setMessageText('');
+    } catch (err) {
+      console.error('Error sending message:', err);
+      alert('Error al enviar mensaje');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    
+    // Check if it's a link
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    if (urlRegex.test(messageText)) {
+      sendMessage(messageText, 'link');
+    } else {
+      sendMessage(messageText, 'text');
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      
+      audioChunksRef.current = [];
+      
+      recorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+      
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await uploadAudio(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+      
+      recorder.start();
+      setMediaRecorder(recorder);
+      setRecording(true);
+    } catch (err) {
+      console.error('Error starting recording:', err);
+      alert('Error al acceder al micrófono');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && recording) {
+      mediaRecorder.stop();
+      setRecording(false);
+    }
+  };
+
+  const uploadAudio = async (audioBlob) => {
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'audio.webm');
+    
+    setSending(true);
+    try {
+      const uploadResponse = await axios.post(
+        `${API}/upload/${user.id}/audio`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      
+      await sendMessage('Audio', 'audio', uploadResponse.data.file_url);
+    } catch (err) {
+      console.error('Error uploading audio:', err);
+      alert('Error al subir audio');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const onDrop = async (acceptedFiles) => {
+    const file = acceptedFiles[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    let messageType = 'file';
+    if (file.type.startsWith('image/')) {
+      messageType = 'image';
+    }
+
+    setSending(true);
+    try {
+      const uploadResponse = await axios.post(
+        `${API}/upload/${user.id}/${messageType}`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+
+      await sendMessage(file.name, messageType, uploadResponse.data.file_url);
+    } catch (err) {
+      console.error('Error uploading file:', err);
+      alert('Error al subir archivo');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    noClick: true,
+    noKeyboard: true,
+  });
+
+  return (
+    <motion.div
+      className="chat-section"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.5 }}
+      data-testid="chat-section"
+      {...getRootProps()}
+    >
+      <input {...getInputProps()} />
+      
+      {/* Header */}
+      <div className="section-header glass">
+        <h2 className="section-title">
+          <span className="section-icon">💬</span>
+          Chat General
+        </h2>
+        <span className="online-count">{messages.length} mensajes</span>
+      </div>
+
+      {/* Messages Container */}
+      <div className="messages-container glass">
+        {isDragActive && (
+          <motion.div
+            className="drop-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="drop-content">
+              <span className="drop-icon">📁</span>
+              <p>Suelta el archivo aquí</p>
+            </div>
+          </motion.div>
+        )}
+
+        <div className="messages-list">
+          <AnimatePresence>
+            {messages.map((message, index) => (
+              <Message key={message.id || index} message={message} />
+            ))}
+          </AnimatePresence>
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {/* Input Area */}
+      <div className="input-area glass">
+        <form onSubmit={handleSendMessage} className="message-form">
+          <button
+            type="button"
+            className="action-btn"
+            onClick={() => document.getElementById('file-input').click()}
+            disabled={sending}
+            data-testid="attach-file-button"
+          >
+            📎
+          </button>
+          <input
+            id="file-input"
+            type="file"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              if (e.target.files[0]) {
+                onDrop([e.target.files[0]]);
+              }
+            }}
+          />
+
+          <motion.button
+            type="button"
+            className={`action-btn ${recording ? 'recording' : ''}`}
+            onMouseDown={startRecording}
+            onMouseUp={stopRecording}
+            onMouseLeave={stopRecording}
+            whileTap={{ scale: 0.9 }}
+            disabled={sending}
+            data-testid="voice-record-button"
+          >
+            {recording ? '⏹️' : '🎤'}
+          </motion.button>
+
+          <input
+            type="text"
+            value={messageText}
+            onChange={(e) => setMessageText(e.target.value)}
+            placeholder="Escribe algo bonito... 💬"
+            className="message-input"
+            disabled={sending}
+            data-testid="message-input"
+          />
+
+          <motion.button
+            type="submit"
+            className="send-btn"
+            disabled={!messageText.trim() || sending}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            data-testid="send-message-button"
+          >
+            {sending ? '⏳' : '🚀'}
+          </motion.button>
+        </form>
+      </div>
+    </motion.div>
+  );
+}
+
+function Message({ message }) {
+  const renderContent = () => {
+    switch (message.message_type) {
+      case 'image':
+        return (
+          <div className="message-image">
+            <img src={`${BACKEND_URL}${message.file_url}`} alt="Imagen" />
+            {message.content !== 'Archivo adjunto' && (
+              <p className="image-caption">{message.content}</p>
+            )}
+          </div>
+        );
+      
+      case 'audio':
+        return (
+          <div className="message-audio">
+            <audio controls src={`${BACKEND_URL}${message.file_url}`} />
+          </div>
+        );
+      
+      case 'link':
+        return (
+          <div className="message-link">
+            <a href={message.content} target="_blank" rel="noopener noreferrer">
+              {message.content}
+            </a>
+          </div>
+        );
+      
+      case 'file':
+        return (
+          <div className="message-file">
+            <a href={`${BACKEND_URL}${message.file_url}`} target="_blank" rel="noopener noreferrer">
+              📄 {message.content}
+            </a>
+          </div>
+        );
+      
+      default:
+        return <p className="message-text">{message.content}</p>;
+    }
+  };
+
+  return (
+    <motion.div
+      className="message"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ duration: 0.3 }}
+      data-testid="chat-message"
+    >
+      <div
+        className="message-avatar aura-glow"
+        style={{
+          backgroundImage: message.avatar_url
+            ? `url(${BACKEND_URL}${message.avatar_url})`
+            : 'linear-gradient(135deg, #8B5CF6, #06B6D4)',
+          '--aura-color': message.aura_color,
+          boxShadow: `0 0 15px ${message.aura_color}40`,
+        }}
+      />
+      <div className="message-content">
+        <div className="message-header">
+          <span
+            className="message-author"
+            style={{ color: message.aura_color }}
+          >
+            {message.username}
+          </span>
+          <span className="message-time">
+            {new Date(message.timestamp).toLocaleTimeString('es-ES', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </span>
+        </div>
+        {renderContent()}
+      </div>
+    </motion.div>
+  );
+}
+
+export default ChatSection;
