@@ -491,8 +491,23 @@ class ConventoAPITester:
         self.test_create_voice_channel()
         self.test_get_voice_channels()
         self.test_join_voice_channel()
+        self.test_get_channel_participants()
         self.test_toggle_ghost_mode()
+        
+        # WebRTC Signaling Tests (CRITICAL)
+        print("📡 WebRTC Signaling Tests")
+        self.test_webrtc_send_signal()
+        self.test_webrtc_get_signals()
+        self.test_webrtc_ice_candidate()
+        
+        # File Upload Tests
+        print("📁 File Upload Tests")
+        self.test_file_upload_avatar()
+        
+        # Cleanup Tests
+        print("🧹 Cleanup Tests")
         self.test_leave_voice_channel()
+        self.test_delete_voice_channel()
         
         # Print Results
         print("=" * 50)
