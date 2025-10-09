@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
+import { ChatIcon, HeadphonesIcon, SparklesIcon } from '@/components/Icons';
 import './LandingPage.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
