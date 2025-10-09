@@ -37,13 +37,9 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
   const [screenStream, setScreenStream] = useState(null);
   const [remoteScreens, setRemoteScreens] = useState({});
   
-  const localStreamRef = useRef(null);
-  const peerConnectionsRef = useRef({});
-  const remoteStreamsRef = useRef({});
-  const socketRef = useRef(null);
-  const signalingPollingRef = useRef(null);
+  const webrtcRef = useRef(null);
   const [participants, setParticipants] = useState([]);
-  const [socketConnected, setSocketConnected] = useState(false);
+  const [webrtcConnected, setWebrtcConnected] = useState(false);
 
   // WebRTC Configuration - Production-ready with multiple STUN servers
   const rtcConfig = {
