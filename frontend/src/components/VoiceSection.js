@@ -497,21 +497,31 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     const { from_user, data } = signal;
     const { offer } = data;
     
-    console.log('📨 Received offer from:', from_user);
-
-    const pc = createPeerConnection(from_user);
+    console.log('📨 Processing offer from:', from_user);
+    console.log('Offer SDP type:', offer.type);
 
     try {
+      const pc = createPeerConnection(from_user);
+      
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await pc.createAnswer();
+      console.log('✅ Remote description set for offer');
+      
+      const answer = await pc.createAnswer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+      });
+      
       await pc.setLocalDescription(answer);
+      console.log('✅ Local description set for answer');
 
       console.log('📤 Sending answer to:', from_user);
       await sendSignal(from_user, 'answer', {
-        answer: pc.localDescription
+        answer: answer
       });
+      
+      console.log('✅ Answer sent successfully');
     } catch (err) {
-      console.error('Error handling offer:', err);
+      console.error('❌ Error handling offer from', from_user, ':', err);
     }
   };
 
@@ -519,16 +529,21 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     const { from_user, data } = signal;
     const { answer } = data;
     
-    console.log('📨 Received answer from:', from_user);
+    console.log('📨 Processing answer from:', from_user);
+    console.log('Answer SDP type:', answer.type);
 
     const pc = peerConnectionsRef.current[from_user];
-    if (pc) {
+    if (pc && pc.signalingState === 'have-local-offer') {
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(answer));
-        console.log('✅ Answer processed successfully');
+        console.log('✅ Answer processed successfully for:', from_user);
       } catch (err) {
-        console.error('Error handling answer:', err);
+        console.error('❌ Error handling answer from', from_user, ':', err);
       }
+    } else if (!pc) {
+      console.warn('⚠️ No peer connection found for answer from:', from_user);
+    } else {
+      console.warn('⚠️ Peer connection not in correct state for answer. State:', pc.signalingState);
     }
   };
 
@@ -536,15 +551,21 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     const { from_user, data } = signal;
     const { candidate } = data;
     
+    console.log('📨 Processing ICE candidate from:', from_user);
+    
     const pc = peerConnectionsRef.current[from_user];
-
-    if (pc) {
+    if (pc && pc.remoteDescription) {
       try {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
-        console.log('🧊 ICE candidate added from:', from_user);
+        const iceCandidate = new RTCIceCandidate(candidate);
+        await pc.addIceCandidate(iceCandidate);
+        console.log('✅ ICE candidate added from:', from_user);
       } catch (err) {
-        console.error('Error adding ICE candidate:', err);
+        console.error('❌ Error adding ICE candidate from', from_user, ':', err);
       }
+    } else if (!pc) {
+      console.warn('⚠️ No peer connection found for ICE candidate from:', from_user);
+    } else {
+      console.warn('⚠️ Remote description not set, queuing ICE candidate from:', from_user);
     }
   };
 
