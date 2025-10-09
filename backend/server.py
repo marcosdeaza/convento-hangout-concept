@@ -225,20 +225,22 @@ async def upload_file(user_id: str, upload_type: str, file: UploadFile = File(..
         # Read and process file
         contents = await file.read()
         
-        # If it's an image (not GIF), compress it
-        if upload_type in ['avatar', 'banner'] and ext.lower() not in ['gif']:
+        # If it's an image (not GIF or WEBP), compress it
+        if upload_type in ['avatar', 'banner'] and ext.lower() not in ['gif', 'webp']:
             try:
                 img = Image.open(io.BytesIO(contents))
-                # Resize based on type
-                if upload_type == 'avatar':
-                    img.thumbnail((400, 400), Image.Resampling.LANCZOS)
-                elif upload_type == 'banner':
-                    img.thumbnail((1200, 400), Image.Resampling.LANCZOS)
-                
-                # Save compressed
-                output = io.BytesIO()
-                img.save(output, format='PNG', optimize=True)
-                contents = output.getvalue()
+                # Only process static images
+                if not getattr(img, 'is_animated', False):
+                    # Resize based on type
+                    if upload_type == 'avatar':
+                        img.thumbnail((400, 400), Image.Resampling.LANCZOS)
+                    elif upload_type == 'banner':
+                        img.thumbnail((1200, 400), Image.Resampling.LANCZOS)
+                    
+                    # Save compressed
+                    output = io.BytesIO()
+                    img.save(output, format='PNG', optimize=True)
+                    contents = output.getvalue()
             except Exception as e:
                 logger.error(f"Image processing error: {e}")
         
