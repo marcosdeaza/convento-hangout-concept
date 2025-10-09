@@ -213,14 +213,16 @@ function ProfileSection({ user, onUpdate }) {
       {/* Profile Card */}
       <div className="profile-card glass">
         {/* Banner */}
-        <div
-          className="profile-banner"
-          style={{
-            backgroundImage: user.banner_url
-              ? `url(${BACKEND_URL}${user.banner_url})`
-              : 'linear-gradient(135deg, #8B5CF6, #06B6D4)',
-          }}
-        >
+        <div className="profile-banner">
+          {user.banner_url ? (
+            <img 
+              src={`${BACKEND_URL}${user.banner_url}`} 
+              alt="Banner" 
+              className="banner-image"
+            />
+          ) : (
+            <div className="banner-gradient" />
+          )}
           <motion.button
             className="edit-banner-btn"
             onClick={() => document.getElementById('banner-input').click()}
