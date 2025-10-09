@@ -259,26 +259,20 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
       return;
     }
 
+    const channelName = activeVoiceChannel.name;
+    const channelId = activeVoiceChannel.id;
+    
     try {
-      console.log('👋 FORCE LEAVING CHANNEL:', activeVoiceChannel.name);
+      console.log('👋 FORCE LEAVING CHANNEL:', channelName);
 
-      // STEP 1: Stop all polling/signaling immediately
-      if (signalingPollingRef.current) {
-        clearInterval(signalingPollingRef.current);
-        signalingPollingRef.current = null;
-        console.log('✅ Stopped signaling polling');
+      // STEP 1: Stop SimpleWebRTC immediately
+      if (webrtcRef.current) {
+        await webrtcRef.current.stop();
+        webrtcRef.current = null;
+        console.log('✅ SimpleWebRTC stopped');
       }
 
-      // STEP 2: Stop ALL media tracks immediately
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((track, index) => {
-          track.stop();
-          console.log(`🔇 Stopped local ${track.kind} track ${index}`);
-        });
-        localStreamRef.current = null;
-      }
-
-      // STEP 3: Stop screen sharing immediately
+      // STEP 2: Stop screen sharing immediately
       if (screenStream) {
         screenStream.getTracks().forEach((track, index) => {
           track.stop();
@@ -288,71 +282,53 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
         setIsScreenSharing(false);
       }
 
-      // STEP 4: Force close ALL peer connections
-      const connectionIds = Object.keys(peerConnectionsRef.current);
-      console.log(`🔌 Force closing ${connectionIds.length} peer connections`);
-      
-      connectionIds.forEach(userId => {
-        try {
-          const pc = peerConnectionsRef.current[userId];
-          if (pc) {
-            pc.close();
-            console.log(`✅ Closed peer connection with ${userId}`);
-          }
-          
-          // Force cleanup audio elements
-          cleanupUserConnection(userId);
-          
-        } catch (err) {
-          console.error(`❌ Error closing connection with ${userId}:`, err);
-        }
-      });
-      
-      // STEP 5: Clear ALL references immediately
-      peerConnectionsRef.current = {};
-      remoteStreamsRef.current = {};
-      pendingIceCandidates.current = {};
-
-      // STEP 6: Force UI reset FIRST (so user sees immediate response)
+      // STEP 3: FORCE UI reset IMMEDIATELY (user sees instant response)
       setActiveVoiceChannel(null);
       setIsMuted(false);
       setIsDeafened(false);
       setRemoteScreens({});
       setParticipants([]);
       setShowDeviceSettings(false);
-      setSocketConnected(false);
+      setWebrtcConnected(false);
       
-      console.log('✅ UI state reset - user should see they left');
+      console.log('✅ UI RESET COMPLETE - User is visually out of channel');
 
-      // STEP 7: Leave on server (async, don't wait)
-      try {
-        await axios.post(`${API}/voice-channels/${activeVoiceChannel.id}/leave?user_id=${user.id}`, {}, {
-          timeout: 3000
-        });
-        console.log('✅ Successfully left on server');
-      } catch (serverErr) {
-        console.warn('⚠️ Server leave failed but continuing:', serverErr.message);
-      }
-
-      // STEP 8: Refresh channels list
-      setTimeout(() => {
+      // STEP 4: Leave on server (don't block UI)
+      setTimeout(async () => {
+        try {
+          await axios.post(`${API}/voice-channels/${channelId}/leave?user_id=${user.id}`, {}, {
+            timeout: 5000
+          });
+          console.log('✅ Server leave successful');
+        } catch (serverErr) {
+          console.warn('⚠️ Server leave failed:', serverErr.message);
+        }
+        
+        // Refresh channels list
         onRefresh();
-      }, 500);
+      }, 100);
       
-      console.log('🎉 SUCCESSFULLY LEFT CHANNEL - USER IS FREE!');
+      console.log('🎉 USER IS FREE! Left channel:', channelName);
       
     } catch (err) {
-      console.error('❌ Error in leave process:', err);
+      console.error('❌ Error leaving channel:', err);
       
-      // FORCE UI reset even if something fails
+      // NUCLEAR OPTION: Force everything to null
       setActiveVoiceChannel(null);
       setIsMuted(false);
       setIsDeafened(false);
       setRemoteScreens({});
       setParticipants([]);
       setShowDeviceSettings(false);
+      setWebrtcConnected(false);
       
-      console.log('🚨 EMERGENCY EXIT - UI reset to free user');
+      // Stop everything
+      if (webrtcRef.current) {
+        webrtcRef.current.stop().catch(console.error);
+        webrtcRef.current = null;
+      }
+      
+      console.log('🚨 NUCLEAR EXIT COMPLETE - User forcibly freed');
     }
   };
 
