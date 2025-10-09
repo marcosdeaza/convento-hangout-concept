@@ -511,14 +511,11 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     const newDeafened = !isDeafened;
     setIsDeafened(newDeafened);
     
-    // Mute/unmute all remote audio
-    Object.values(remoteStreamsRef.current).forEach(stream => {
-      const audioElements = document.querySelectorAll('audio');
-      audioElements.forEach(audio => {
-        if (audio.srcObject === stream) {
-          audio.volume = newDeafened ? 0 : 1;
-        }
-      });
+    // Mute/unmute all remote audio elements
+    Object.values(remoteStreamsRef.current).forEach((audioData) => {
+      if (audioData.audioElement) {
+        audioData.audioElement.volume = newDeafened ? 0 : 1;
+      }
     });
     
     console.log(newDeafened ? '🙉 Audio silenciado' : '🔊 Audio activado');
