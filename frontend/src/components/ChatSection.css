@@ -30,13 +30,7 @@
   font-size: 28px;
 }
 
-.online-count {
-  font-size: 14px;
-  color: rgba(248, 250, 252, 0.6);
-  padding: 6px 12px;
-  border-radius: 20px;
-  background: rgba(139, 92, 246, 0.1);
-}
+.header-info {\n  display: flex;\n  align-items: center;\n  gap: 12px;\n}\n\n.connection-status {\n  font-size: 13px;\n  font-weight: 600;\n  display: flex;\n  align-items: center;\n  gap: 5px;\n}\n\n.connection-status.connected {\n  color: #10B981;\n}\n\n.connection-status.disconnected {\n  color: #EF4444;\n  animation: pulse 2s ease-in-out infinite;\n}\n\n.online-count {\n  font-size: 14px;\n  color: rgba(248, 250, 252, 0.6);\n  padding: 6px 12px;\n  border-radius: 20px;\n  background: rgba(139, 92, 246, 0.1);\n}
 
 /* ============= MESSAGES CONTAINER ============= */
 .messages-container {
