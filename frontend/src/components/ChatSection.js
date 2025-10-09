@@ -67,37 +67,17 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
     }
   };
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      
-      audioChunksRef.current = [];
-      
-      recorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-      
-      recorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await uploadAudio(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
-      };
-      
-      recorder.start();
-      setMediaRecorder(recorder);
-      setRecording(true);
-    } catch (err) {
-      console.error('Error starting recording:', err);
-      alert('Error al acceder al micrófono');
-    }
+  const handleStartRecording = () => {
+    setShowAudioRecorder(true);
   };
 
-  const stopRecording = () => {
-    if (mediaRecorder && recording) {
-      mediaRecorder.stop();
-      setRecording(false);
-    }
+  const handleAudioSend = async (audioBlob) => {
+    setShowAudioRecorder(false);
+    await uploadAudio(audioBlob);
+  };
+
+  const handleAudioCancel = () => {
+    setShowAudioRecorder(false);
   };
 
   const uploadAudio = async (audioBlob) => {
