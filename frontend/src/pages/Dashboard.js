@@ -22,7 +22,10 @@ function Dashboard({ user, onLogout, onUserUpdate }) {
   // Socket.IO connection
   useEffect(() => {
     const socketConnection = io(BACKEND_URL, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 10,
     });
 
     socketConnection.on('connect', () => {
