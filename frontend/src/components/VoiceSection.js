@@ -360,7 +360,7 @@ function VoiceSection({
       {/* Header */}
       <div className="section-header glass">
         <h2 className="section-title">
-          <span className="section-icon">🎧</span>
+          <span className="section-icon"><HeadphonesIcon size={28} /></span>
           Canales de Voz
         </h2>
         <motion.button
