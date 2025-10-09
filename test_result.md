@@ -184,4 +184,4 @@ test_plan:
 
 agent_communication:
   - agent: "main"
-    message: "Iniciando implementación completa de Convento. Prioridad: reemplazar Socket.IO WebRTC signaling con REST API polling para solucionar problemas de conectividad en Kubernetes."
+    message: "Completada implementación de WebRTC con REST API polling. Landing page, chat y canales de voz básicos funcionando. Necesita testing exhaustivo del backend antes de continuar con funcionalidades avanzadas."
