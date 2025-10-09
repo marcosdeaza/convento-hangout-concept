@@ -84,7 +84,6 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     if (activeVoiceChannel && user) {
       console.log('🔄 Starting robust WebRTC signaling for channel:', activeVoiceChannel.id);
       
-      let signalingInterval;
       let connectionAttempts = 0;
       const MAX_ATTEMPTS = 3;
       
