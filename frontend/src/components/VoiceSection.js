@@ -440,20 +440,23 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     }
   };
 
-  const sendSignal = (toUserId, signalType, data) => {
-    if (!socketRef.current || !socketConnected) {
-      console.error('❌ Cannot send signal: Socket not connected');
-      return;
+  const sendSignal = async (toUserId, signalType, data) => {
+    try {
+      console.log(`📤 Sending ${signalType} to ${toUserId}`);
+      
+      await axios.post(`${API}/webrtc/signal`, {
+        from_user: user.id,
+        to_user: toUserId,
+        channel_id: activeVoiceChannel.id,
+        signal_type: signalType,
+        data: data
+      }, { timeout: 8000 });
+      
+      console.log(`✅ Signal ${signalType} sent successfully`);
+    } catch (err) {
+      console.error(`❌ Failed to send ${signalType} signal:`, err);
+      throw err; // Re-throw to handle in calling function
     }
-    
-    console.log(`📤 Sending ${signalType} to ${toUserId}`);
-    socketRef.current.emit('webrtc_signal', {
-      from_user: user.id,
-      to_user: toUserId,
-      channel_id: activeVoiceChannel.id,
-      signal_type: signalType,
-      data: data
-    });
   };
 
   const handleUserJoined = (data) => {
