@@ -141,16 +141,36 @@ function AudioRecorder({ onSend, onCancel }) {
 
   const handleSend = () => {
     if (mediaRecorderRef.current && isRecording) {
+      console.log('🎤 AudioRecorder: Stopping recording to send...');
+      
+      // Set up a promise to wait for the blob
+      const sendPromise = new Promise((resolve) => {
+        mediaRecorderRef.current.onstop = () => {
+          console.log('🎤 AudioRecorder: Recording stopped, blob ready');
+          resolve();
+        };
+      });
+      
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       clearInterval(timerRef.current);
       
-      // Wait a bit for the blob to be ready
-      setTimeout(() => {
-        if (audioBlob) {
-          onSend(audioBlob);
-        }
-      }, 100);
+      // Wait for recording to fully stop and blob to be ready
+      sendPromise.then(() => {
+        setTimeout(() => {
+          if (audioBlob) {
+            console.log('🎤 AudioRecorder: Sending audio blob:', audioBlob.size, 'bytes');
+            onSend(audioBlob);
+          } else {
+            console.error('❌ AudioRecorder: No audio blob available to send');
+            alert('Error: No se pudo procesar el audio grabado');
+          }
+        }, 200);
+      });
+    } else if (audioBlob) {
+      // If already stopped but have blob, send it
+      console.log('🎤 AudioRecorder: Sending existing audio blob');
+      onSend(audioBlob);
     }
   };
 
