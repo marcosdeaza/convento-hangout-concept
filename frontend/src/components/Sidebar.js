@@ -127,7 +127,7 @@ function Sidebar({ user, activeSection, onSectionChange, onLogout, activeVoiceCh
         whileTap={{ scale: 0.95 }}
         data-testid="logout-button"
       >
-        <span>🚪</span>
+        <LogoutIcon size={18} />
         Salir
       </motion.button>
     </motion.div>
