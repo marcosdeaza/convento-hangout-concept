@@ -510,7 +510,7 @@ class ConventoAPITester:
         # Cleanup Tests
         print("🧹 Cleanup Tests")
         self.test_leave_voice_channel()
-        self.test_delete_voice_channel()
+        self.test_auto_delete_empty_channel()
         
         # Print Results
         print("=" * 50)
