@@ -7,9 +7,9 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 function Sidebar({ user, activeSection, onSectionChange, onLogout, activeVoiceChannel }) {
   const menuItems = [
-    { id: 'chat', icon: '💬', label: 'Chat' },
-    { id: 'voice', icon: '🎧', label: 'Canales de Voz' },
-    { id: 'profile', icon: '✨', label: 'Perfil' },
+    { id: 'chat', icon: <ChatIcon size={20} />, label: 'Chat' },
+    { id: 'voice', icon: <HeadphonesIcon size={20} />, label: 'Canales de Voz' },
+    { id: 'profile', icon: <SparklesIcon size={20} />, label: 'Perfil' },
   ];
 
   return (
