@@ -12,10 +12,9 @@ const API = `${BACKEND_URL}/api`;
 function ChatSection({ user, messages, onRefresh, onMessageSent }) {
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [showAudioRecorder, setShowAudioRecorder] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef(null);
-  const audioChunksRef = useRef([]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
