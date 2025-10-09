@@ -226,7 +226,11 @@ function ChatSection({ user, messages, onRefresh, onMessageSent }) {
       </div>
 
       {/* Messages Container */}
-      <div className="messages-container glass">
+      <div 
+        className="messages-container glass"
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+      >
         {isDragActive && (
           <motion.div
             className="drop-overlay"
