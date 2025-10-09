@@ -644,7 +644,18 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
             <div className="channel-view-header" style={{ borderTopColor: activeVoiceChannel.aura_color }}>
               <div className="channel-info">
                 <h3 style={{ color: activeVoiceChannel.aura_color }}>{activeVoiceChannel.name}</h3>
-                <span>{activeVoiceChannel.participants?.length || 0} participantes</span>
+                <div className="channel-meta">
+                  <span>{participants.length} participantes</span>
+                  {activeVoiceChannel.creator_id === user.id && (
+                    <button
+                      className={`ghost-mode-btn ${activeVoiceChannel.is_ghost_mode ? 'active' : ''}`}
+                      onClick={toggleGhostMode}
+                      title={activeVoiceChannel.is_ghost_mode ? 'Hacer visible' : 'Modo fantasma'}
+                    >
+                      👻 {activeVoiceChannel.is_ghost_mode ? 'Fantasma' : 'Visible'}
+                    </button>
+                  )}
+                </div>
               </div>
               <button className="close-view-btn" onClick={leaveChannel}>
                 <XIcon size={24} />
