@@ -60,14 +60,14 @@ function VoiceSection({ user, voiceChannels, activeVoiceChannel, setActiveVoiceC
     rtcpMuxPolicy: 'require'
   };
 
-  // Enhanced audio constraints for high quality
+  // PRODUCTION-READY audio constraints
   const audioConstraints = {
     audio: {
       echoCancellation: true,
       noiseSuppression: true,
       autoGainControl: true,
-      sampleRate: { ideal: 48000 },
-      channelCount: { ideal: 2 },
+      sampleRate: { ideal: 44100 }, // More compatible than 48000
+      channelCount: { ideal: 1 },    // Mono for better compatibility
       sampleSize: { ideal: 16 },
     },
   };
