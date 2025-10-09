@@ -323,8 +323,8 @@ function FeatureCard({ icon, title, description, delay }) {
     >
       <motion.div
         className="feature-icon"
-        whileHover={{ scale: 1.2, rotate: 360 }}
-        transition={{ duration: 0.5 }}
+        whileHover={{ scale: 1.2, rotate: 15 }}
+        transition={{ duration: 0.3 }}
       >
         {icon}
       </motion.div>
